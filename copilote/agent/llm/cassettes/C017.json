@@ -1,0 +1,98 @@
+{
+  "client_id": "C017",
+  "date_reference": "2026-10-23",
+  "modele": "claude-sonnet-5-5",
+  "tours": [
+    {
+      "texte": "Je rassemble les données du client : habitudes, produits en retard, stock à écouler, suggestions et appels précédents.",
+      "appels": [
+        {
+          "nom": "historique_client",
+          "arguments": {
+            "client_id": "C017"
+          }
+        },
+        {
+          "nom": "produits_habituels_manquants",
+          "arguments": {
+            "client_id": "C017"
+          }
+        },
+        {
+          "nom": "stock_a_ecouler",
+          "arguments": {
+            "client_id": "C017"
+          }
+        },
+        {
+          "nom": "suggestions_croisees",
+          "arguments": {
+            "client_id": "C017"
+          }
+        },
+        {
+          "nom": "historique_appels",
+          "arguments": {
+            "client_id": "C017"
+          }
+        }
+      ]
+    },
+    {
+      "texte": "Deux produits importants sont décrochés : je regarde le détail du saumon surgelé.",
+      "appels": [
+        {
+          "nom": "details_produit",
+          "arguments": {
+            "client_id": "C017",
+            "code": "SG021"
+          }
+        }
+      ]
+    }
+  ],
+  "redaction": {
+    "resume_habitudes": "EHPAD qui commande deux fois par semaine (lundi et jeudi) pour 440 € HT en moyenne. Taboulé et cuisse de poulet dans presque toutes les commandes, haricots verts et saumon surgelé souvent. Activité en baisse de 30 % sur 3 mois.",
+    "produits_manquants": [
+      {
+        "code": "SG024",
+        "commentaire": "Steak haché surgelé deux fois par semaine jusqu'à début septembre, plus rien depuis 43 jours."
+      },
+      {
+        "code": "SG021",
+        "commentaire": "Saumon surgelé habituel absent depuis 39 jours : très probablement acheté ailleurs."
+      }
+    ],
+    "stock_a_ecouler": [
+      {
+        "code": "FR023",
+        "remise_pct": 10,
+        "argument": "Son produit le plus régulier : 10 % sur un lot à DLC lundi, pour le déjeuner de lundi."
+      },
+      {
+        "code": "FR041",
+        "remise_pct": 25,
+        "argument": "Pommes Golden à -25 % : compote maison ou fruit cuit pour les résidents."
+      }
+    ],
+    "suggestions": [
+      {
+        "code": "FR017",
+        "argument": "Pris par les deux autres EHPAD : une alternative fraîche au steak haché surgelé."
+      },
+      {
+        "code": "FR005",
+        "argument": "Les deux autres EHPAD l'achètent chez nous : pratique pour les petits-déjeuners."
+      }
+    ],
+    "accroches": [
+      "Bonjour Mme Gauthier, je constate que vous ne prenez plus chez nous ni le saumon ni le steak haché surgelé depuis début septembre : est-ce que quelque chose ne vous a pas convenu ?",
+      "Pour lundi, je vous fais vos cuisses de poulet à -10 %, avec vos quantités habituelles ?",
+      "Les autres EHPAD prennent notre steak haché frais : vous voulez que je vous en mette une boîte pour comparer ?"
+    ],
+    "points_attention": [
+      "Saumon et steak haché surgelés décrochés depuis 6 semaines : probable concurrent.",
+      "Chiffre d'affaires en baisse de 30 % sur 3 mois."
+    ]
+  }
+}

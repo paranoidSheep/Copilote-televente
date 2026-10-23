@@ -1,0 +1,64 @@
+// Client HTTP typé de l'API du copilote. Les types viennent de `types-api.ts`,
+// généré à partir du schéma OpenAPI du backend : front et back restent alignés.
+export class ErreurApi extends Error {
+    statut;
+    constructor(statut, message) {
+        super(message);
+        this.statut = statut;
+        this.name = "ErreurApi";
+    }
+}
+function url(chemin, parametres = {}) {
+    const recherche = new URLSearchParams();
+    for (const [cle, valeur] of Object.entries(parametres)) {
+        if (valeur !== null && valeur !== undefined && valeur !== "")
+            recherche.set(cle, String(valeur));
+    }
+    const requete = recherche.toString();
+    return requete ? `${chemin}?${requete}` : chemin;
+}
+function detailErreur(corps, statut) {
+    if (typeof corps === "object" && corps !== null && "detail" in corps) {
+        const detail = corps.detail;
+        if (typeof detail === "string")
+            return detail;
+        if (Array.isArray(detail)) {
+            return detail
+                .map((e) => (typeof e === "object" && e !== null && "msg" in e ? String(e.msg) : ""))
+                .filter(Boolean)
+                .join(" ; ");
+        }
+    }
+    return `Erreur ${statut}`;
+}
+async function requete(chemin, init) {
+    const reponse = await fetch(chemin, { headers: { Accept: "application/json" }, ...init });
+    const type = reponse.headers.get("content-type") ?? "";
+    const corps = type.includes("application/json") ? await reponse.json() : await reponse.text();
+    if (!reponse.ok)
+        throw new ErreurApi(reponse.status, detailErreur(corps, reponse.status));
+    // Le contrat est garanti par le schéma OpenAPI dont sont générés les types.
+    return corps;
+}
+const id = encodeURIComponent;
+export const api = {
+    sante: () => requete("/sante"),
+    clients: (filtres = {}) => requete(url("/clients", filtres)),
+    client360: (clientId) => requete(`/clients/${id(clientId)}`),
+    fiche: (clientId, mode, regenerer = false) => requete(url(`/clients/${id(clientId)}/fiche`, { mode, regenerer: regenerer || undefined })),
+    produit: (clientId, code) => requete(`/clients/${id(clientId)}/produits/${id(code)}`),
+    fileAppels: (televendeur) => requete(url("/appels/file", { televendeur })),
+    enregistrerCompteRendu: (compteRendu) => requete("/comptes-rendus", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(compteRendu),
+    }),
+    comptesRendus: (filtres = {}) => requete(url("/comptes-rendus", filtres)),
+    statistiques: (jours) => requete(url("/statistiques", { jours })),
+    planEcoulement: () => requete("/stock/plan-ecoulement"),
+    labo: {
+        agent: (clientId) => requete(url("/labo/agent", { client_id: clientId })),
+        outils: (clientId, produit) => requete(url(`/labo/clients/${id(clientId)}/outils`, { produit })),
+        comparaison: (clientId) => requete(`/labo/clients/${id(clientId)}/comparaison`),
+    },
+};

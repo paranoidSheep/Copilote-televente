@@ -1,0 +1,99 @@
+{
+  "client_id": "C028",
+  "date_reference": "2026-10-23",
+  "modele": "claude-sonnet-5-5",
+  "tours": [
+    {
+      "texte": "Je rassemble les données du client : habitudes, produits en retard, stock à écouler, suggestions et appels précédents.",
+      "appels": [
+        {
+          "nom": "historique_client",
+          "arguments": {
+            "client_id": "C028"
+          }
+        },
+        {
+          "nom": "produits_habituels_manquants",
+          "arguments": {
+            "client_id": "C028"
+          }
+        },
+        {
+          "nom": "stock_a_ecouler",
+          "arguments": {
+            "client_id": "C028"
+          }
+        },
+        {
+          "nom": "suggestions_croisees",
+          "arguments": {
+            "client_id": "C028"
+          }
+        },
+        {
+          "nom": "historique_appels",
+          "arguments": {
+            "client_id": "C028"
+          }
+        }
+      ]
+    }
+  ],
+  "redaction": {
+    "resume_habitudes": "Hôtel qui commande une fois par semaine, le lundi, pour 760 € HT en moyenne (activité en hausse de 8 %). Charcuterie (jambons blanc et cru), pommes, comté et salades sont dans presque toutes les commandes. Mais aucune commande depuis 11 jours : celle de lundi dernier n'a pas été passée.",
+    "produits_manquants": [
+      {
+        "code": "FR041",
+        "commentaire": "Dans 100 % de ses commandes : à reprendre lundi."
+      },
+      {
+        "code": "FR026",
+        "commentaire": "Jambon blanc pris à 92 %, absent de la dernière semaine."
+      },
+      {
+        "code": "FR027",
+        "commentaire": "Jambon cru pris à 92 %, à relancer avec la commande de lundi."
+      },
+      {
+        "code": "FR009",
+        "commentaire": "Comté hebdomadaire arrêté depuis 32 jours : décroché, à questionner."
+      },
+      {
+        "code": "FR035",
+        "commentaire": "Salades pour le restaurant, non commandées depuis 11 jours."
+      }
+    ],
+    "stock_a_ecouler": [
+      {
+        "code": "FR026",
+        "remise_pct": 25,
+        "argument": "Son jambon blanc, DLC demain : 25 % si l'hôtel a besoin d'un réassort pour le week-end."
+      },
+      {
+        "code": "FR041",
+        "remise_pct": 20,
+        "argument": "Ses pommes habituelles à -20 % (DLC dimanche), pour le buffet du petit-déjeuner."
+      },
+      {
+        "code": "SG034",
+        "remise_pct": 10,
+        "argument": "Mini-quiches habituelles, lot à DLC 12 novembre : 10 % pour le brunch."
+      }
+    ],
+    "suggestions": [
+      {
+        "code": "FR010",
+        "argument": "L'autre hôtel en sert au petit-déjeuner : complète bien les yaourts."
+      }
+    ],
+    "accroches": [
+      "Bonjour Mme Picard, je n'ai pas eu votre commande lundi dernier : tout va bien à l'hôtel ? Je vous prépare la commande habituelle pour lundi prochain ?",
+      "Si vous manquez de quelque chose pour ce week-end, j'ai votre jambon blanc à -25 % et les pommes à -20 % : je peux vous les livrer.",
+      "Et pour le comté, je ne le vois plus depuis un mois : vous avez changé de fromage pour le buffet ?"
+    ],
+    "points_attention": [
+      "Aucune commande depuis 11 jours alors que l'hôtel commande chaque lundi : à appeler en priorité.",
+      "Comté décroché depuis 32 jours."
+    ]
+  }
+}

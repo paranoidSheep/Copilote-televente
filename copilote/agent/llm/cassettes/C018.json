@@ -1,0 +1,84 @@
+{
+  "client_id": "C018",
+  "date_reference": "2026-10-23",
+  "modele": "claude-sonnet-5-5",
+  "tours": [
+    {
+      "texte": "Je rassemble les données du client : habitudes, produits en retard, stock à écouler, suggestions et appels précédents.",
+      "appels": [
+        {
+          "nom": "historique_client",
+          "arguments": {
+            "client_id": "C018"
+          }
+        },
+        {
+          "nom": "produits_habituels_manquants",
+          "arguments": {
+            "client_id": "C018"
+          }
+        },
+        {
+          "nom": "stock_a_ecouler",
+          "arguments": {
+            "client_id": "C018"
+          }
+        },
+        {
+          "nom": "suggestions_croisees",
+          "arguments": {
+            "client_id": "C018"
+          }
+        },
+        {
+          "nom": "historique_appels",
+          "arguments": {
+            "client_id": "C018"
+          }
+        }
+      ]
+    }
+  ],
+  "redaction": {
+    "resume_habitudes": "EHPAD fidèle et en légère hausse (+6 %), qui commande le lundi et le jeudi pour 733 € HT en moyenne. Large gamme : petits pois, pommes, ratatouille, lasagnes, lait et fromage blanc reviennent très régulièrement.",
+    "produits_manquants": [],
+    "stock_a_ecouler": [
+      {
+        "code": "FR041",
+        "remise_pct": 20,
+        "argument": "Ses pommes habituelles (6 kg par commande), DLC dimanche : 20 % pour la compote de lundi."
+      },
+      {
+        "code": "SG014",
+        "remise_pct": 15,
+        "argument": "Ratatouille qu'il commande presque à chaque fois : 15 % sur une plus grosse quantité."
+      },
+      {
+        "code": "FR033",
+        "remise_pct": 10,
+        "argument": "Son filet de lieu habituel, en surstock : 10 % de remise."
+      },
+      {
+        "code": "FR023",
+        "remise_pct": 10,
+        "argument": "Cuisse de poulet à -10 % (DLC lundi), pour le repas de lundi."
+      }
+    ],
+    "suggestions": [
+      {
+        "code": "FR011",
+        "argument": "Les deux autres EHPAD en prennent : complète bien le fromage blanc pour les desserts."
+      },
+      {
+        "code": "FR022",
+        "argument": "Adopté par les deux autres EHPAD : une viande tendre, adaptée aux résidents."
+      }
+    ],
+    "accroches": [
+      "Bonjour M. Mercier, pour lundi j'ai vos pommes Golden à -20 %, votre ratatouille à -15 % et le filet de lieu à -10 % : je vous les prépare avec vos quantités habituelles ?",
+      "Les deux autres EHPAD de notre secteur ont ajouté nos yaourts nature : vous voulez un carton pour essayer ?",
+      "Avez-vous des besoins particuliers pour les repas de fin de mois ?"
+    ],
+    "points_attention": []
+  }
+}

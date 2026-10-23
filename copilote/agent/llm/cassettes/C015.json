@@ -1,0 +1,86 @@
+{
+  "client_id": "C015",
+  "date_reference": "2026-10-23",
+  "modele": "claude-sonnet-5-5",
+  "tours": [
+    {
+      "texte": "Je rassemble les données du client : habitudes, produits en retard, stock à écouler, suggestions et appels précédents.",
+      "appels": [
+        {
+          "nom": "historique_client",
+          "arguments": {
+            "client_id": "C015"
+          }
+        },
+        {
+          "nom": "produits_habituels_manquants",
+          "arguments": {
+            "client_id": "C015"
+          }
+        },
+        {
+          "nom": "stock_a_ecouler",
+          "arguments": {
+            "client_id": "C015"
+          }
+        },
+        {
+          "nom": "suggestions_croisees",
+          "arguments": {
+            "client_id": "C015"
+          }
+        },
+        {
+          "nom": "historique_appels",
+          "arguments": {
+            "client_id": "C015"
+          }
+        }
+      ]
+    }
+  ],
+  "redaction": {
+    "resume_habitudes": "Lycée qui commande le lundi et le jeudi pour 530 € HT en moyenne. Tarte aux pommes dans presque toutes les commandes, oignons, poêlée méridionale et filet de lieu. Activité en forte baisse (-37 % sur 3 mois).",
+    "produits_manquants": [
+      {
+        "code": "FR045",
+        "commentaire": "Taboulé pris deux fois par semaine, plus rien depuis 36 jours : à questionner."
+      },
+      {
+        "code": "FR017",
+        "commentaire": "Steak haché frais commandé à 74 %, absent depuis 25 jours : risque de perte."
+      },
+      {
+        "code": "SG009",
+        "commentaire": "Haricots verts habituels pas commandés depuis 8 jours."
+      }
+    ],
+    "stock_a_ecouler": [
+      {
+        "code": "FR033",
+        "remise_pct": 10,
+        "argument": "Son poisson habituel (13 kg par commande), en surstock : 10 % de remise."
+      },
+      {
+        "code": "SG019",
+        "remise_pct": 15,
+        "argument": "Déjà acheté : pommes noisettes à -15 %, alternative aux frites pour le steak haché."
+      }
+    ],
+    "suggestions": [
+      {
+        "code": "FR041",
+        "argument": "Toutes les cantines en servent et nous en avons à écouler : fruit du jour à petit prix."
+      }
+    ],
+    "accroches": [
+      "Bonjour M. Henry, je vois que vous ne prenez plus le steak haché frais ni le taboulé depuis quelques semaines : vous avez changé les menus, ou un autre fournisseur ?",
+      "Pour lundi, je vous remets les haricots verts et je vous propose votre filet de lieu à -10 % : ça vous convient ?",
+      "Tous les établissements du secteur prennent nos pommes Golden en fruit du jour : je vous en ajoute quelques kilos ?"
+    ],
+    "points_attention": [
+      "Activité en baisse de 37 % sur 3 mois.",
+      "Steak haché frais et taboulé décrochés depuis 3 à 5 semaines : probable concurrent."
+    ]
+  }
+}

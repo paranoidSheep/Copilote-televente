@@ -1,0 +1,90 @@
+{
+  "client_id": "C022",
+  "date_reference": "2026-10-23",
+  "modele": "claude-sonnet-5-5",
+  "tours": [
+    {
+      "texte": "Je rassemble les données du client : habitudes, produits en retard, stock à écouler, suggestions et appels précédents.",
+      "appels": [
+        {
+          "nom": "historique_client",
+          "arguments": {
+            "client_id": "C022"
+          }
+        },
+        {
+          "nom": "produits_habituels_manquants",
+          "arguments": {
+            "client_id": "C022"
+          }
+        },
+        {
+          "nom": "stock_a_ecouler",
+          "arguments": {
+            "client_id": "C022"
+          }
+        },
+        {
+          "nom": "suggestions_croisees",
+          "arguments": {
+            "client_id": "C022"
+          }
+        },
+        {
+          "nom": "historique_appels",
+          "arguments": {
+            "client_id": "C022"
+          }
+        }
+      ]
+    }
+  ],
+  "redaction": {
+    "resume_habitudes": "Boulangerie qui commande le mardi et le samedi pour 464 € HT en moyenne. Fruits rouges, lait, pains au chocolat, crème et œufs sont ses bases. Activité en baisse de 17 % et aucune commande depuis 6 jours, alors qu'elle commande en principe tous les 4 jours.",
+    "produits_manquants": [
+      {
+        "code": "FR006",
+        "commentaire": "13 plateaux d'œufs habituellement, rien depuis 10 jours."
+      },
+      {
+        "code": "SG003",
+        "commentaire": "Pains aux raisins habituels (4 cartons), pas commandés depuis 10 jours."
+      },
+      {
+        "code": "FR026",
+        "commentaire": "Jambon (12 kg) absent depuis 10 jours : vérifier la gamme sandwich."
+      }
+    ],
+    "stock_a_ecouler": [
+      {
+        "code": "FR026",
+        "remise_pct": 30,
+        "argument": "Son jambon habituel, DLC demain : 30 % pour relancer les sandwichs du samedi."
+      },
+      {
+        "code": "FR004",
+        "remise_pct": 20,
+        "argument": "Crème liquide habituelle (14 briques), lot à DLC dimanche."
+      },
+      {
+        "code": "FR041",
+        "remise_pct": 20,
+        "argument": "Ses pommes habituelles à -20 % pour les chaussons du week-end."
+      }
+    ],
+    "suggestions": [
+      {
+        "code": "FR002",
+        "argument": "Les 4 autres boulangeries l'utilisent pour leur feuilletage, et nous en avons à écouler."
+      }
+    ],
+    "accroches": [
+      "Bonjour M. Leroy, je n'ai pas reçu votre commande cette semaine : tout va bien ? Pour demain samedi, je vous remets les œufs, les pains aux raisins et le jambon comme d'habitude ?",
+      "Votre jambon blanc est à -30 % aujourd'hui, DLC demain : idéal pour les sandwichs de samedi.",
+      "Toutes les boulangeries du secteur travaillent notre beurre de tourage : je vous en mets une plaque pour essayer ?"
+    ],
+    "points_attention": [
+      "Pas de commande depuis 6 jours (rythme habituel : tous les 4 jours) et activité en baisse de 17 % sur 3 mois."
+    ]
+  }
+}

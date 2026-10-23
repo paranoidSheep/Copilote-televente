@@ -1,0 +1,88 @@
+{
+  "client_id": "C027",
+  "date_reference": "2026-10-23",
+  "modele": "claude-sonnet-5-5",
+  "tours": [
+    {
+      "texte": "Je rassemble les données du client : habitudes, produits en retard, stock à écouler, suggestions et appels précédents.",
+      "appels": [
+        {
+          "nom": "historique_client",
+          "arguments": {
+            "client_id": "C027"
+          }
+        },
+        {
+          "nom": "produits_habituels_manquants",
+          "arguments": {
+            "client_id": "C027"
+          }
+        },
+        {
+          "nom": "stock_a_ecouler",
+          "arguments": {
+            "client_id": "C027"
+          }
+        },
+        {
+          "nom": "suggestions_croisees",
+          "arguments": {
+            "client_id": "C027"
+          }
+        },
+        {
+          "nom": "historique_appels",
+          "arguments": {
+            "client_id": "C027"
+          }
+        }
+      ]
+    }
+  ],
+  "redaction": {
+    "resume_habitudes": "Hôtel au plus gros panier de notre clientèle (1 184 € HT), une commande par semaine le jeudi, en hausse de 8 %. Petits-déjeuners (œufs, viennoiseries crues, fromage blanc, comté) et restaurant (pavé de saumon, salades, desserts glacés).",
+    "produits_manquants": [
+      {
+        "code": "SG028",
+        "commentaire": "Glace vanille hebdomadaire, pas commandée depuis 15 jours : fin de saison ou oubli ?"
+      },
+      {
+        "code": "SG029",
+        "commentaire": "Sorbet citron arrêté depuis 43 jours, sans doute pour raison de saison."
+      },
+      {
+        "code": "FR001",
+        "commentaire": "Beurre doux pris toutes les deux semaines (13 kg), rien depuis 29 jours."
+      }
+    ],
+    "stock_a_ecouler": [
+      {
+        "code": "FR031",
+        "remise_pct": 20,
+        "argument": "Son poisson habituel (12 kg par commande), DLC demain : 20 % pour le restaurant ce week-end."
+      },
+      {
+        "code": "FR001",
+        "remise_pct": 10,
+        "argument": "À reprendre dans la commande : son beurre habituel à -10 % pour les petits-déjeuners."
+      },
+      {
+        "code": "SG034",
+        "remise_pct": 10,
+        "argument": "Mini-quiches habituelles, lot à DLC 12 novembre : 10 % pour le brunch."
+      }
+    ],
+    "suggestions": [
+      {
+        "code": "FR003",
+        "argument": "L'autre hôtel de notre clientèle en prend chaque semaine pour sa cuisine."
+      }
+    ],
+    "accroches": [
+      "Bonjour M. Fontaine, j'ai votre pavé de saumon à -20 % pour le restaurant ce week-end, DLC demain : je vous en réserve combien ?",
+      "Pour jeudi, je vous remets le beurre doux à -10 % ? Je n'en ai pas vu depuis presque un mois.",
+      "La glace vanille, on la garde pour l'automne ou on la met en pause jusqu'au printemps ?"
+    ],
+    "points_attention": []
+  }
+}

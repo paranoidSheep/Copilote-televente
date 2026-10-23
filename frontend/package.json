@@ -1,0 +1,13 @@
+{
+  "name": "copilote-televente-frontend",
+  "private": true,
+  "description": "Interface web du copilote télévente (TypeScript strict, sans framework ni bundler).",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "verifier": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "6.0.2"
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "client_id": "C020",
+  "date_reference": "2026-10-23",
+  "modele": "claude-sonnet-5-5",
+  "tours": [
+    {
+      "texte": "Je rassemble les données du client : habitudes, produits en retard, stock à écouler, suggestions et appels précédents.",
+      "appels": [
+        {
+          "nom": "historique_client",
+          "arguments": {
+            "client_id": "C020"
+          }
+        },
+        {
+          "nom": "produits_habituels_manquants",
+          "arguments": {
+            "client_id": "C020"
+          }
+        },
+        {
+          "nom": "stock_a_ecouler",
+          "arguments": {
+            "client_id": "C020"
+          }
+        },
+        {
+          "nom": "suggestions_croisees",
+          "arguments": {
+            "client_id": "C020"
+          }
+        },
+        {
+          "nom": "historique_appels",
+          "arguments": {
+            "client_id": "C020"
+          }
+        }
+      ]
+    },
+    {
+      "texte": "Le croissant cru est décroché depuis 5 semaines chez cette boulangerie : je vérifie l'historique avant de le mentionner.",
+      "appels": [
+        {
+          "nom": "details_produit",
+          "arguments": {
+            "client_id": "C020",
+            "code": "SG001"
+          }
+        }
+      ]
+    }
+  ],
+  "redaction": {
+    "resume_habitudes": "Boulangerie-pâtisserie qui commande le mercredi et le jeudi (431 € HT en moyenne), en hausse de 7 %. La viennoiserie surgelée représente 43 % des achats (pains au chocolat, pains aux raisins), complétée par la crèmerie (crème, beurre de tourage).",
+    "produits_manquants": [
+      {
+        "code": "SG001",
+        "commentaire": "2 cartons de croissants crus par semaine jusqu'à mi-septembre, plus rien depuis 36 jours : à reconquérir."
+      }
+    ],
+    "stock_a_ecouler": [
+      {
+        "code": "FR002",
+        "remise_pct": 15,
+        "argument": "Son beurre de tourage habituel, DLC mardi : 15 % pour le feuilletage de la semaine."
+      },
+      {
+        "code": "FR026",
+        "remise_pct": 25,
+        "argument": "Jambon pour ses sandwichs, DLC demain : 25 % pour les ventes du samedi."
+      },
+      {
+        "code": "FR008",
+        "remise_pct": 25,
+        "argument": "Emmental habituel, DLC demain : pour les croque-monsieur du week-end."
+      },
+      {
+        "code": "FR041",
+        "remise_pct": 20,
+        "argument": "Pommes à -20 % : chaussons ou tartes du week-end."
+      }
+    ],
+    "suggestions": [
+      {
+        "code": "FR005",
+        "argument": "3 boulangeries sur 4 le prennent chez nous : utile pour les crèmes pâtissières."
+      }
+    ],
+    "accroches": [
+      "Bonjour M. Martin, je n'ai plus vu passer vos croissants crus depuis la mi-septembre : vous les faites vous-même maintenant, ou vous avez trouvé une autre source ?",
+      "J'ai votre beurre de tourage à -15 % (DLC mardi) : de quoi lancer votre feuilletage de la semaine à meilleur prix.",
+      "Pour vos sandwichs du samedi, je peux vous faire le jambon blanc et l'emmental à -25 % : je vous en mets ?"
+    ],
+    "points_attention": [
+      "Croissant cru décroché depuis 36 jours : produit important pour une boulangerie."
+    ]
+  }
+}

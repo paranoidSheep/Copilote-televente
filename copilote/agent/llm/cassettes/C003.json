@@ -1,0 +1,91 @@
+{
+  "client_id": "C003",
+  "date_reference": "2026-10-23",
+  "modele": "claude-sonnet-5-5",
+  "tours": [
+    {
+      "texte": "Je rassemble les données du client : habitudes, produits en retard, stock à écouler, suggestions et appels précédents.",
+      "appels": [
+        {
+          "nom": "historique_client",
+          "arguments": {
+            "client_id": "C003"
+          }
+        },
+        {
+          "nom": "produits_habituels_manquants",
+          "arguments": {
+            "client_id": "C003"
+          }
+        },
+        {
+          "nom": "stock_a_ecouler",
+          "arguments": {
+            "client_id": "C003"
+          }
+        },
+        {
+          "nom": "suggestions_croisees",
+          "arguments": {
+            "client_id": "C003"
+          }
+        },
+        {
+          "nom": "historique_appels",
+          "arguments": {
+            "client_id": "C003"
+          }
+        }
+      ]
+    }
+  ],
+  "redaction": {
+    "resume_habitudes": "Restaurant gastronomique au panier élevé (732 € HT en moyenne), qui commande le lundi et le vendredi. Achats variés : crevettes, jambon cru, filet mignon, desserts glacés. Activité en recul de 21 % sur 3 mois.",
+    "produits_manquants": [
+      {
+        "code": "FR018",
+        "commentaire": "Sauté de veau commandé tous les 5-6 jours, plus rien depuis 3 semaines : changement de carte ?"
+      },
+      {
+        "code": "SG028",
+        "commentaire": "Glace vanille absente depuis 14 jours, alors qu'elle partait tous les 4 jours : effet de saison ou concurrent ?"
+      },
+      {
+        "code": "FR013",
+        "commentaire": "Parmesan habituellement pris chaque semaine (8,5 kg), pas commandé depuis 14 jours."
+      }
+    ],
+    "stock_a_ecouler": [
+      {
+        "code": "FR021",
+        "remise_pct": 25,
+        "argument": "Échine qu'il prend une fois sur deux, DLC demain : 25 % pour un plat mijoté ce week-end."
+      },
+      {
+        "code": "SG029",
+        "remise_pct": 15,
+        "argument": "Son sorbet citron habituel, en surstock : 15 % pour constituer une réserve, DLC 2028."
+      },
+      {
+        "code": "FR004",
+        "remise_pct": 25,
+        "argument": "Crème liquide à -25 % (DLC dimanche), utile pour ses sauces."
+      }
+    ],
+    "suggestions": [
+      {
+        "code": "FR024",
+        "argument": "Les 4 autres restaurants en prennent et nous en avons à écouler : bon remplaçant du sauté de veau à la carte."
+      }
+    ],
+    "accroches": [
+      "Bonjour M. Lambert, je vous appelle pour votre commande de lundi : je n'ai pas vu passer de sauté de veau ni de parmesan ces dernières semaines, vous en avez encore ?",
+      "J'ai votre sorbet citron en promotion à -15 %, il se conserve jusqu'en 2028 : c'est le moment de faire un peu de réserve.",
+      "Tous les restaurants du coin travaillent notre magret de canard en ce moment : vous voulez que je vous en ajoute pour essayer ?"
+    ],
+    "points_attention": [
+      "Activité en baisse de 21 % sur 3 mois.",
+      "Sauté de veau et glace vanille décrochés : vérifier s'ils sont passés à la concurrence."
+    ]
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "client_id": "C019",
+  "date_reference": "2026-10-23",
+  "modele": "claude-sonnet-5-5",
+  "tours": [
+    {
+      "texte": "Je rassemble les données du client : habitudes, produits en retard, stock à écouler, suggestions et appels précédents.",
+      "appels": [
+        {
+          "nom": "historique_client",
+          "arguments": {
+            "client_id": "C019"
+          }
+        },
+        {
+          "nom": "produits_habituels_manquants",
+          "arguments": {
+            "client_id": "C019"
+          }
+        },
+        {
+          "nom": "stock_a_ecouler",
+          "arguments": {
+            "client_id": "C019"
+          }
+        },
+        {
+          "nom": "suggestions_croisees",
+          "arguments": {
+            "client_id": "C019"
+          }
+        },
+        {
+          "nom": "historique_appels",
+          "arguments": {
+            "client_id": "C019"
+          }
+        }
+      ]
+    }
+  ],
+  "redaction": {
+    "resume_habitudes": "EHPAD qui commande le lundi et le jeudi pour 748 € HT en moyenne. Tarte aux pommes dans presque toutes les commandes, escalope de dinde et sauté de veau très réguliers. Activité stable (-7 %).",
+    "produits_manquants": [
+      {
+        "code": "FR045",
+        "commentaire": "Taboulé commandé deux fois par semaine jusqu'à mi-septembre, plus rien depuis 36 jours."
+      },
+      {
+        "code": "SG013",
+        "commentaire": "Brocolis habituels (7 sachets) absents depuis 32 jours : changement de menu ou concurrent ?"
+      }
+    ],
+    "stock_a_ecouler": [
+      {
+        "code": "SG014",
+        "remise_pct": 15,
+        "argument": "Sa ratatouille habituelle à -15 % : légume prêt à servir, il se garde jusqu'en 2027."
+      },
+      {
+        "code": "SG026",
+        "remise_pct": 10,
+        "argument": "Cordon bleu qu'il commande régulièrement : 10 % pour faire du stock."
+      },
+      {
+        "code": "FR021",
+        "remise_pct": 30,
+        "argument": "Échine déjà achetée, DLC demain : seulement si un repas est prévu ce week-end."
+      }
+    ],
+    "suggestions": [
+      {
+        "code": "SG011",
+        "argument": "Les deux autres EHPAD la servent : bonne alternative aux brocolis."
+      }
+    ],
+    "accroches": [
+      "Bonjour Mme Bonnet, je vois que le taboulé et les brocolis ne sont plus dans vos commandes depuis la mi-septembre : vous avez fait évoluer vos menus ?",
+      "Pour lundi, je vous propose votre ratatouille à -15 % et le cordon bleu à -10 % : je vous les ajoute ?",
+      "Les autres EHPAD prennent notre poêlée méridionale : je vous en glisse un sachet pour tester ?"
+    ],
+    "points_attention": [
+      "Taboulé et brocolis décrochés depuis plus d'un mois."
+    ]
+  }
+}

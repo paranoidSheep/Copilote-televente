@@ -1,0 +1,102 @@
+{
+  "client_id": "C023",
+  "date_reference": "2026-10-23",
+  "modele": "claude-sonnet-5-5",
+  "tours": [
+    {
+      "texte": "Je rassemble les données du client : habitudes, produits en retard, stock à écouler, suggestions et appels précédents.",
+      "appels": [
+        {
+          "nom": "historique_client",
+          "arguments": {
+            "client_id": "C023"
+          }
+        },
+        {
+          "nom": "produits_habituels_manquants",
+          "arguments": {
+            "client_id": "C023"
+          }
+        },
+        {
+          "nom": "stock_a_ecouler",
+          "arguments": {
+            "client_id": "C023"
+          }
+        },
+        {
+          "nom": "suggestions_croisees",
+          "arguments": {
+            "client_id": "C023"
+          }
+        },
+        {
+          "nom": "historique_appels",
+          "arguments": {
+            "client_id": "C023"
+          }
+        }
+      ]
+    },
+    {
+      "texte": "Le beurre doux est décroché chez ce client alors que nous sommes en surstock : je regarde son historique.",
+      "appels": [
+        {
+          "nom": "details_produit",
+          "arguments": {
+            "client_id": "C023",
+            "code": "FR001"
+          }
+        }
+      ]
+    }
+  ],
+  "redaction": {
+    "resume_habitudes": "Boulangerie très régulière : près de 3 commandes par semaine (lundi, vendredi, samedi) pour 596 € HT en moyenne. La crèmerie fait la moitié des achats ; lait, emmental, fruits rouges et beurre de tourage sont dans presque toutes les commandes.",
+    "produits_manquants": [
+      {
+        "code": "FR001",
+        "commentaire": "Pris tous les 2 jours (6 kg) jusqu'à fin septembre, plus rien depuis 32 jours : très probablement acheté ailleurs."
+      },
+      {
+        "code": "SG004",
+        "commentaire": "Chaussons aux pommes crus arrêtés depuis 32 jours."
+      },
+      {
+        "code": "FR042",
+        "commentaire": "Pâte feuilletée habituellement tous les 4 jours, rien depuis 11 jours."
+      }
+    ],
+    "stock_a_ecouler": [
+      {
+        "code": "FR001",
+        "remise_pct": 10,
+        "argument": "Argument de reconquête : son beurre doux à -10 %, nous en avons beaucoup."
+      },
+      {
+        "code": "FR002",
+        "remise_pct": 10,
+        "argument": "Son beurre de tourage habituel (7 plaques par commande), DLC mardi : 10 %."
+      },
+      {
+        "code": "FR008",
+        "remise_pct": 20,
+        "argument": "Emmental qu'il prend à chaque commande, DLC demain : pour les croque du samedi."
+      },
+      {
+        "code": "FR041",
+        "remise_pct": 25,
+        "argument": "Pommes à -25 % : pour refaire ses chaussons maison s'il a arrêté les chaussons crus."
+      }
+    ],
+    "suggestions": [],
+    "accroches": [
+      "Bonjour Mme Arnaud, je vois que vous ne prenez plus votre beurre doux chez nous depuis fin septembre : si c'est une question de prix, je peux vous faire 10 % dès demain.",
+      "Pour samedi, je vous prépare le beurre de tourage avec 10 % de remise et l'emmental à -20 % : je vous mets vos quantités habituelles ?",
+      "Et pour les chaussons aux pommes, vous les faites maintenant vous-même ? J'ai des pommes Golden à -25 % ce week-end."
+    ],
+    "points_attention": [
+      "Beurre doux et chaussons aux pommes décrochés depuis 32 jours : risque de concurrent sur la crèmerie."
+    ]
+  }
+}

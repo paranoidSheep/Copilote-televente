@@ -1,0 +1,85 @@
+{
+  "client_id": "C004",
+  "date_reference": "2026-10-23",
+  "modele": "claude-sonnet-5-5",
+  "tours": [
+    {
+      "texte": "Je rassemble les données du client : habitudes, produits en retard, stock à écouler, suggestions et appels précédents.",
+      "appels": [
+        {
+          "nom": "historique_client",
+          "arguments": {
+            "client_id": "C004"
+          }
+        },
+        {
+          "nom": "produits_habituels_manquants",
+          "arguments": {
+            "client_id": "C004"
+          }
+        },
+        {
+          "nom": "stock_a_ecouler",
+          "arguments": {
+            "client_id": "C004"
+          }
+        },
+        {
+          "nom": "suggestions_croisees",
+          "arguments": {
+            "client_id": "C004"
+          }
+        },
+        {
+          "nom": "historique_appels",
+          "arguments": {
+            "client_id": "C004"
+          }
+        }
+      ]
+    }
+  ],
+  "redaction": {
+    "resume_habitudes": "Restaurant en forte croissance (+21 % sur 3 mois), qui commande 3 fois par semaine (lundi, mercredi, vendredi) pour 728 € HT en moyenne. La marée fait plus d'un tiers des achats : pavé de saumon et filet de lieu presque à chaque commande.",
+    "produits_manquants": [
+      {
+        "code": "FR043",
+        "commentaire": "Tagliatelles fraîches prises tous les 4-5 jours, pas commandées depuis 9 jours."
+      }
+    ],
+    "stock_a_ecouler": [
+      {
+        "code": "FR031",
+        "remise_pct": 20,
+        "argument": "Son poisson phare, lot à DLC demain : 20 % sur un complément pour le service de samedi."
+      },
+      {
+        "code": "FR033",
+        "remise_pct": 10,
+        "argument": "Il en prend 8 kg par commande et nous sommes en surstock : 10 % sur une quantité plus importante."
+      },
+      {
+        "code": "FR004",
+        "remise_pct": 20,
+        "argument": "Il en utilise 13 briques par commande : DLC dimanche, à anticiper."
+      },
+      {
+        "code": "FR021",
+        "remise_pct": 20,
+        "argument": "Échine habituelle, DLC demain : 20 % pour une cuisson longue ce week-end."
+      }
+    ],
+    "suggestions": [
+      {
+        "code": "FR029",
+        "argument": "Pris par la moitié des restaurants pour les tapas et les pâtes, à tester avec ses tagliatelles."
+      }
+    ],
+    "accroches": [
+      "Bonjour Mme Rousseau, votre activité marche fort ces temps-ci ! Pour votre commande de lundi, je vous remets 7 sachets de tagliatelles fraîches comme d'habitude ?",
+      "J'ai du pavé de saumon et du filet de lieu en quantité, avec 10 à 20 % de remise : je vous en prévois un peu plus pour le week-end ?",
+      "Je peux aussi vous ajouter de la crème liquide à -20 %, DLC dimanche, pour vos sauces : je vous en mets combien ?"
+    ],
+    "points_attention": []
+  }
+}

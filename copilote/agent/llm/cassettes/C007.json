@@ -1,0 +1,75 @@
+{
+  "client_id": "C007",
+  "date_reference": "2026-10-23",
+  "modele": "claude-sonnet-5-5",
+  "tours": [
+    {
+      "texte": "Je rassemble les données du client : habitudes, produits en retard, stock à écouler, suggestions et appels précédents.",
+      "appels": [
+        {
+          "nom": "historique_client",
+          "arguments": {
+            "client_id": "C007"
+          }
+        },
+        {
+          "nom": "produits_habituels_manquants",
+          "arguments": {
+            "client_id": "C007"
+          }
+        },
+        {
+          "nom": "stock_a_ecouler",
+          "arguments": {
+            "client_id": "C007"
+          }
+        },
+        {
+          "nom": "suggestions_croisees",
+          "arguments": {
+            "client_id": "C007"
+          }
+        },
+        {
+          "nom": "historique_appels",
+          "arguments": {
+            "client_id": "C007"
+          }
+        }
+      ]
+    }
+  ],
+  "redaction": {
+    "resume_habitudes": "Brasserie en croissance (+13 % sur 3 mois) qui commande le lundi et le mercredi, pour près de 990 € HT par commande. Gros volumes sur les frites, le filet de poulet et les tomates ; la bavette est un pilier de sa carte.",
+    "produits_manquants": [],
+    "stock_a_ecouler": [
+      {
+        "code": "FR016",
+        "remise_pct": 25,
+        "argument": "Sa viande phare, lot à DLC demain : 25 % pour une suggestion bavette-frites ce week-end."
+      },
+      {
+        "code": "FR031",
+        "remise_pct": 30,
+        "argument": "Il en a déjà pris : pavé de saumon à -30 %, DLC demain, en plat du jour."
+      },
+      {
+        "code": "FR004",
+        "remise_pct": 25,
+        "argument": "Crème liquide à -25 % (DLC dimanche), pour les sauces de la bavette."
+      }
+    ],
+    "suggestions": [
+      {
+        "code": "SG022",
+        "argument": "Les deux autres brasseries en commandent : entrée ou salade facile à mettre en place."
+      }
+    ],
+    "accroches": [
+      "Bonjour M. Garnier, bravo, votre activité progresse bien ! J'ai votre bavette d'aloyau à -25 % pour le week-end, DLC demain : je vous en réserve combien ?",
+      "Pour accompagner, je peux vous ajouter de la crème liquide à -25 %, et du pavé de saumon à -30 % si vous voulez un poisson du jour.",
+      "Les autres brasseries du secteur ont adopté nos crevettes crues décortiquées : je vous en mets un sachet pour essayer ?"
+    ],
+    "points_attention": []
+  }
+}

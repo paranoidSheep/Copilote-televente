@@ -1,0 +1,102 @@
+{
+  "client_id": "C005",
+  "date_reference": "2026-10-23",
+  "modele": "claude-sonnet-5-5",
+  "tours": [
+    {
+      "texte": "Je rassemble les données du client : habitudes, produits en retard, stock à écouler, suggestions et appels précédents.",
+      "appels": [
+        {
+          "nom": "historique_client",
+          "arguments": {
+            "client_id": "C005"
+          }
+        },
+        {
+          "nom": "produits_habituels_manquants",
+          "arguments": {
+            "client_id": "C005"
+          }
+        },
+        {
+          "nom": "stock_a_ecouler",
+          "arguments": {
+            "client_id": "C005"
+          }
+        },
+        {
+          "nom": "suggestions_croisees",
+          "arguments": {
+            "client_id": "C005"
+          }
+        },
+        {
+          "nom": "historique_appels",
+          "arguments": {
+            "client_id": "C005"
+          }
+        }
+      ]
+    },
+    {
+      "texte": "Le filet de lieu noir est à la fois décroché chez ce client et en surstock chez nous : je regarde le détail.",
+      "appels": [
+        {
+          "nom": "details_produit",
+          "arguments": {
+            "client_id": "C005",
+            "code": "FR033"
+          }
+        }
+      ]
+    }
+  ],
+  "redaction": {
+    "resume_habitudes": "Notre plus gros panier restaurant (1 083 € HT en moyenne), près de 3 commandes par semaine le lundi, le mercredi et le jeudi. Pilier sur le jambon cru, le beurre et la marée (pavé de saumon, filet de lieu). Activité stable.",
+    "produits_manquants": [
+      {
+        "code": "FR033",
+        "commentaire": "Commandé tous les 2 jours (9 kg) jusqu'à fin septembre, plus rien depuis 22 jours : à reconquérir en priorité."
+      },
+      {
+        "code": "SG017",
+        "commentaire": "Frites 10 mm absentes depuis un mois alors qu'elles partaient à chaque commande : probable changement de fournisseur."
+      }
+    ],
+    "stock_a_ecouler": [
+      {
+        "code": "FR033",
+        "remise_pct": 10,
+        "argument": "Argument de reconquête : notre filet de lieu à -10 %, nous avons du volume disponible."
+      },
+      {
+        "code": "FR031",
+        "remise_pct": 20,
+        "argument": "Son pavé de saumon habituel, DLC demain : 20 % sur un complément pour le week-end."
+      },
+      {
+        "code": "SG023",
+        "remise_pct": 15,
+        "argument": "Calamars qu'il commande souvent, en surstock : 15 % pour remplir le congélateur."
+      }
+    ],
+    "suggestions": [
+      {
+        "code": "FR006",
+        "argument": "Tous les autres restaurants en prennent chez nous : pratique pour regrouper ses achats."
+      },
+      {
+        "code": "SG009",
+        "argument": "Adoptés par les 4 autres restaurants, une garniture rapide pour accompagner ses poissons."
+      }
+    ],
+    "accroches": [
+      "Bonjour Mme Perrin, je vous appelle pour votre commande de lundi. Je vois que vous ne prenez plus le filet de lieu noir ni les frites depuis quelques semaines : est-ce que quelque chose ne vous a pas convenu ?",
+      "Pour le lieu, je peux vous faire 10 % de remise dès cette commande, nous avons du très beau produit en quantité.",
+      "J'ai aussi votre pavé de saumon à -20 % pour ce week-end, DLC demain : je vous en ajoute quelques kilos ?"
+    ],
+    "points_attention": [
+      "Deux produits importants décrochés (filet de lieu noir, frites) chez notre plus gros client restaurant : risque de perte au profit d'un concurrent."
+    ]
+  }
+}
