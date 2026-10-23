@@ -103,9 +103,27 @@ class SessionLLM(Protocol):
 Chaque session conserve son propre historique. L'agent ne manipule que des types neutres (`AppelOutil`, `ResultatOutil`, `ReponseLLM`) et ne dépend d'aucun SDK.
 
 - **`FournisseurClaude`** traduit ces types vers le SDK `anthropic` (`client.beta.messages.create`). Il renvoie à l'API le contenu complet de chaque réponse, comme elle l'exige, et traduit les erreurs HTTP en `ErreurFournisseurLLM` avec une raison lisible par le télévendeur.
+- **`FournisseurChatCompletions`** traduit les mêmes types vers l'API « Chat Completions » avec le SDK `openai` : OpenAI, Mistral, Gemini et les serveurs compatibles (Ollama, vLLM…). Le prompt système devient un message `system`, chaque résultat d'outil un message `tool` rattaché par `tool_call_id`. Les appels d'outils de l'assistant sont renvoyés intacts (Gemini y joint une signature à conserver). Des arguments JSON invalides sont transmis à la boîte à outils, qui les refuse et l'explique au modèle.
 - **`FournisseurSimule`** rejoue une cassette JSON : les tours d'outils puis la rédaction. Il vérifie que chaque appel d'outil a reçu son résultat, comme l'API réelle.
 
-Pour ajouter un fournisseur, par exemple un modèle hébergé en interne, il suffit d'implémenter ces deux protocoles et de l'enregistrer dans `application.fournisseurs_par_defaut`.
+### Du catalogue au client
+
+```
+copilote/fournisseurs.py      catalogue : ModeLLM, ProfilFournisseur (protocole, préfixe des variables,
+                              adresse et modèle par défaut, particularités), ConfigFournisseur, Tarif
+  └─ config.py                Config.depuis_environnement() : un ConfigFournisseur par profil,
+                              lu depuis {PREFIXE}_MODEL, {PREFIXE}_BASE_URL, clé, prix…
+     └─ agent/llm/fabrique.py creer_fournisseurs() : protocole ANTHROPIC → FournisseurClaude,
+                              CHAT_COMPLETIONS → FournisseurChatCompletions (fournisseurs complets seulement)
+        └─ application.py     fournisseurs_par_defaut() = IA simulée + fournisseurs configurés ;
+                              tarifs_des_redacteurs() pour le coût estimé du banc d'évaluation
+```
+
+`fournisseurs.py` ne dépend de rien : la configuration, l'API (`/session` liste les rédacteurs disponibles avec leur libellé et leur modèle) et le banc d'évaluation s'y réfèrent sans connaître les SDK.
+
+Le simulateur `agent/llm/simulateur_openai.py` sert l'API Chat Completions en rejouant les cassettes : sans état, il rejoue à chaque requête la conversation reçue avec l'IA simulée. Les tests y branchent l'application à travers un vrai serveur HTTP, comme pour le simulateur du datahub.
+
+Pour ajouter un fournisseur qui parle déjà Chat Completions, une entrée dans `PROFILS` suffit. Pour un autre protocole, il faut implémenter les deux protocoles ci-dessus et l'aiguiller dans `fabrique.py`.
 
 ## Données et état
 
@@ -131,7 +149,9 @@ Pour ajouter un fournisseur, par exemple un modèle hébergé en interne, il suf
 | Besoin | Fichier |
 |---|---|
 | Changer un seuil, une remise ou un objectif du jour | `copilote/analyses/regles.py` |
-| Modifier les consignes données à l'IA | `copilote/agent/prompts.py`, puis `python -m scripts.evaluer --redacteurs anthropic` pour mesurer l'effet |
+| Modifier les consignes données à l'IA | `copilote/agent/prompts.py`, puis `python -m scripts.evaluer --redacteurs anthropic` (ou le fournisseur retenu) pour mesurer l'effet |
+| Changer de fournisseur d'IA | Variables d'environnement seulement (README, « Choisir son fournisseur d'IA ») |
+| Ajouter un fournisseur d'IA | `copilote/fournisseurs.py` (catalogue), et `copilote/agent/llm/` s'il ne parle pas Chat Completions |
 | Ajouter un critère d'évaluation | `copilote/evaluation/criteres.py` |
 | Ajouter un outil pour l'IA | `copilote/agent/outils.py` (+ une analyse dans `copilote/analyses/`) |
 | Ajouter un garde-fou | `copilote/fiche/assemblage.py` |

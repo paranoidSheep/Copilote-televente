@@ -16,7 +16,7 @@ import json
 import logging
 import threading
 import time
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
@@ -35,6 +35,7 @@ from copilote.evaluation import (
     evaluer_fiche,
     synthetiser,
 )
+from copilote.fournisseurs import Tarif
 
 from .fiches import ServiceFiches
 from .journal import ErreurValidation
@@ -74,13 +75,16 @@ class ServiceEvaluation:
         referentiels: FournisseurReferentiel,
         depot: DepotEvaluations,
         *,
+        tarifs: Mapping[ModeLLM, Tarif] | None = None,
         maintenant: Callable[[], datetime] = datetime.now,
         chrono: Callable[[], float] = time.perf_counter,
         parallelisme: int = PARALLELISME,
     ) -> None:
+        """`tarifs` : prix par rédacteur, pour estimer le coût des fiches (absent : coût inconnu)."""
         self._fiches = fiches
         self._referentiels = referentiels
         self._depot = depot
+        self._tarifs = dict(tarifs or {})
         self._maintenant = maintenant
         self._chrono = chrono
         self._parallelisme = parallelisme
@@ -127,7 +131,9 @@ class ServiceEvaluation:
             nonlocal faites
             redacteur, client_id = travail
             production = self._fiches.produire(client_id, redacteur)
-            evaluation = evaluer_fiche(production.fiche, production.contexte, redacteur, production.duree_ms)
+            evaluation = evaluer_fiche(
+                production.fiche, production.contexte, redacteur, production.duree_ms, self._tarifs.get(redacteur)
+            )
             with verrou:
                 faites += 1
                 if progression:

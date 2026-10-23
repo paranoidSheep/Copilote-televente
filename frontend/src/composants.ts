@@ -140,7 +140,7 @@ function etapeTrace(etape: EtapeTrace) {
 }
 
 /** Déroulé de la rédaction par l'IA : appels au modèle et aux outils. */
-export function traceExecution(trace: TraceExecution) {
+export function traceExecution(trace: TraceExecution, fournisseur: string = trace.fournisseur) {
   const entree = trace.etapes.reduce((t, e) => t + (e.jetons_entree ?? 0), 0);
   const sortie = trace.etapes.reduce((t, e) => t + (e.jetons_sortie ?? 0), 0);
   return h(
@@ -149,7 +149,7 @@ export function traceExecution(trace: TraceExecution) {
     h(
       "div",
       { classe: "ligne petit doux" },
-      badge(trace.fournisseur, "info"),
+      badge(fournisseur, "info"),
       trace.modele,
       `· ${trace.etapes.length} étapes · ${trace.duree_totale_ms} ms · ${nombre(entree)} jetons lus, ${nombre(sortie)} écrits`,
     ),

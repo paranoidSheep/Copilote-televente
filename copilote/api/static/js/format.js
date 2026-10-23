@@ -53,6 +53,10 @@ export const LIBELLES = {
     modeLLM: {
         auto: "Automatique",
         anthropic: "Claude",
+        openai: "OpenAI",
+        mistral: "Mistral AI",
+        gemini: "Gemini",
+        compatible: "Compatible OpenAI",
         simule: "IA simulée",
         repli: "Sans IA",
     },
@@ -75,4 +79,9 @@ export const LIBELLES = {
         rappel_ajoute: "Rappel promis oublié",
     },
 };
+/** Nom d'un fournisseur tel qu'il figure dans une trace (« compatible ») → son libellé (« Ollama »). */
+export function libelleFournisseur(nom, libelleMode) {
+    const estMode = (valeur) => valeur in LIBELLES.modeLLM;
+    return estMode(nom) ? libelleMode(nom) : nom;
+}
 export const jours = (liste) => (liste.length ? liste.join(", ") : "sans jour fixe");

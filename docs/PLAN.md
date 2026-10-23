@@ -8,6 +8,7 @@ Ce plan est suivi au fil de l'eau : chaque case est cochée quand l'élément es
 | 2 | Brancher le datahub sans attendre : simulateur REST et contrôle qualité des données | ✅ livrée |
 | 3 | Mesurer la qualité de l'IA : banc d'évaluation | ✅ livrée |
 | 4 | La journée du télévendeur : mode tournée, rappels, apprentissage des retours | ✅ livrée |
+| + | Multi-fournisseur : changer de fournisseur d'IA par simple configuration (demande complémentaire) | ✅ livrée |
 
 ---
 
@@ -89,6 +90,23 @@ Ce plan est suivi au fil de l'eau : chaque case est cochée quand l'élément es
 - **Export CSV.** Prévu pour Excel en français (séparateur « ; », virgule décimale, UTF-8 avec BOM), avec neutralisation des formules. Un télévendeur n'exporte que ses commandes.
 - **Captures.** Elles sont dans [`captures/etape-4/`](captures/etape-4/) : tournée sur mobile, bilan, export ouvert dans un tableur, journée de l'équipe, apprentissage.
 
+## Complément — Multi-fournisseur d'IA
+
+**Pourquoi.** Ne pas dépendre d'un seul fournisseur : pouvoir changer de modèle selon le prix, la qualité mesurée ou l'hébergement des données (Europe, serveurs internes), sans toucher au code.
+
+- [x] Catalogue des fournisseurs : Claude, Mistral, OpenAI, Gemini, et tout service compatible OpenAI (Ollama, vLLM, LM Studio…)
+- [x] Configuration par variables d'environnement, plusieurs fournisseurs à la fois, `LLM_MODE=auto` par ordre de préférence, avertissements au démarrage
+- [x] Adaptateur « Chat Completions » (SDK officiel `openai`), à côté de l'adaptateur Claude, avec erreurs traduites pour le télévendeur
+- [x] Fournisseurs comparables partout : choix du rédacteur dans la fiche, comparaison dans le labo, banc d'évaluation avec coût aux prix configurés
+- [x] Simulateur de service compatible OpenAI, pour éprouver le branchement sans clé (tests de bout en bout sur le réseau, profil Docker `simulateur`)
+- [x] Service Ollama facultatif dans Docker (profil `ollama`) pour un modèle local
+- [x] Tests et captures
+
+**Livré.**
+- **Changer de fournisseur** se fait dans `.env` : clé, modèle, éventuellement adresse, puis `LLM_MODE`. Seul Claude a un modèle par défaut ; pour les autres, le nom du modèle est exigé, car les catalogues changent vite.
+- **Vérifié contre les vraies API** avec une clé volontairement invalide : Gemini répond et l'erreur est traduite (« clé d'API Gemini (Google) refusée ») ; ce test a révélé un format d'erreur propre à Gemini, désormais géré. Mistral et OpenAI ne sont pas joignables depuis l'environnement de développement (politique réseau) : à vérifier sur le VPS avec de vraies clés.
+- **Captures.** Elles sont dans [`captures/multi-fournisseur/`](captures/multi-fournisseur/) : fiche rédigée par le fournisseur configuré, coulisses des appels, comparaison des rédacteurs dans le labo, banc d'évaluation par fournisseur.
+
 ---
 
 ## Journal de suivi
@@ -100,3 +118,4 @@ Ce plan est suivi au fil de l'eau : chaque case est cochée quand l'élément es
 | 23/10/2026 | 2 | Simulateur REST, contrat OpenAPI, mise à l'écart des données inexploitables, diagnostic (écran, API, CLI), profil Docker `simulateur`, 208 tests |
 | 23/10/2026 | 3 | Corrections typées, banc d'évaluation (critères, historique, écran Qualité IA, CLI, CI), 2 défauts corrigés et 1 amélioration du prompt, 233 tests |
 | 23/10/2026 | 4 | Journée (objectifs, agenda, tournée), apprentissage des retours clients, export CSV pour l'ERP, 244 tests |
+| 23/10/2026 | + | Multi-fournisseur : catalogue, adaptateur Chat Completions, configuration, simulateur compatible OpenAI, profils Docker `simulateur` et `ollama`, 266 tests |

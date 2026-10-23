@@ -3,16 +3,16 @@
 import { api } from "../api.js";
 import { badge, bouton, carte, chargement, messageErreur, repliable, titrePage, traceExecution } from "../composants.js";
 import { h, remplacer } from "../dom.js";
-import { euros, LIBELLES } from "../format.js";
+import { euros, LIBELLES, libelleFournisseur } from "../format.js";
 import type { Contexte, Vue } from "../routeur.js";
 import type { Client, Fiche, ModeLLM } from "../types-api.js";
 import { ongletsLabo } from "./onglets-labo.js";
 
 const json = (valeur: unknown): string => JSON.stringify(valeur, null, 2);
 
-function colonneFiche(mode: ModeLLM, fiche: Fiche) {
+function colonneFiche(mode: ModeLLM, fiche: Fiche, libelleMode: (m: ModeLLM) => string) {
   return carte(
-    LIBELLES.modeLLM[mode],
+    libelleMode(mode),
     [
       h("p", { classe: "petit doux", attrs: { style: "margin:0 0 8px" } }, badge(LIBELLES.modeFiche[fiche.mode], fiche.mode === "repli" ? "attention" : "info"), " ", fiche.modele ?? "", fiche.avertissement ? ` — ${fiche.avertissement}` : ""),
       h("p", { classe: "petit" }, fiche.resume_habitudes),
@@ -21,12 +21,12 @@ function colonneFiche(mode: ModeLLM, fiche: Fiche) {
       h("div", { classe: "gras petit" }, "Stock proposé"),
       h("ul", { classe: "petit" }, fiche.stock_a_ecouler.map((s) => h("li", null, `${s.libelle} : −${s.remise_pct} % (${euros(s.prix_propose_ht)})`))),
       h("div", { classe: "petit doux" }, `Panier proposé : ${euros(fiche.panier.total_ht)} HT · ${fiche.garde_fous.length} correction(s) automatique(s)`),
-      fiche.trace ? h("div", { attrs: { style: "margin-top:10px" } }, traceExecution(fiche.trace)) : null,
+      fiche.trace ? h("div", { attrs: { style: "margin-top:10px" } }, traceExecution(fiche.trace, libelleFournisseur(fiche.trace.fournisseur, libelleMode))) : null,
     ],
   );
 }
 
-export const vueLabo: Vue = async (cible, parametres, _contexte: Contexte) => {
+export const vueLabo: Vue = async (cible, parametres, contexte: Contexte) => {
   remplacer(cible, chargement("Chargement du laboratoire…"));
   let clients: Client[];
   try {
@@ -73,7 +73,7 @@ export const vueLabo: Vue = async (cible, parametres, _contexte: Contexte) => {
         h(
           "div",
           { classe: "comparaison" },
-          (Object.entries(fiches) as [ModeLLM, Fiche | undefined][]).map(([mode, fiche]) => (fiche ? colonneFiche(mode, fiche) : null)),
+          (Object.entries(fiches) as [ModeLLM, Fiche | undefined][]).map(([mode, fiche]) => (fiche ? colonneFiche(mode, fiche, contexte.libelleMode) : null)),
         ),
       );
     } catch (erreur) {

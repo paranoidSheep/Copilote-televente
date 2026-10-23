@@ -4,13 +4,11 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
-from copilote.config import ModeLLM
 from copilote.fiche import TypeCorrection
+from copilote.fournisseurs import DATE_DES_TARIFS, libelle_redacteur
 
 from .modeles import Campagne, EvaluationFiche, SyntheseRedacteur
-from .tarifs import DATE_DES_TARIFS
 
-LIBELLES_REDACTEURS = {ModeLLM.ANTHROPIC: "Claude", ModeLLM.SIMULE: "IA simulée", ModeLLM.REPLI: "Repli (sans IA)"}
 LIBELLES_CORRECTIONS = {
     TypeCorrection.PRODUIT_INCONNU: "Produit inventé écarté",
     TypeCorrection.OFFRE_REFUSEE: "Offre refusée récemment retirée",
@@ -80,7 +78,7 @@ def en_markdown(campagne: Campagne) -> str:
             COLONNES_SYNTHESE,
             (
                 [
-                    LIBELLES_REDACTEURS[s.redacteur] + (f" · {s.modele}" if s.modele else ""),
+                    libelle_redacteur(s.redacteur) + (f" · {s.modele}" if s.modele else ""),
                     f"**{_nombre(s.score_global)}**",
                     _nombre(s.score_fidelite),
                     f"{_nombre(s.score_couverture)} ({s.signaux_couverts}/{s.signaux_total} signaux)",
@@ -94,13 +92,14 @@ def en_markdown(campagne: Campagne) -> str:
             ),
         ),
         "",
-        f"Coûts estimés aux tarifs publics de l'API Anthropic du {DATE_DES_TARIFS} ; « projeté » : IA simulée, "
+        f"Coûts estimés : tarifs publics de l'API Anthropic du {DATE_DES_TARIFS}, ou prix configurés pour les "
+        "autres fournisseurs (« — » s'ils ne le sont pas) ; « projeté » : IA simulée, "
         "au tarif du modèle imité.",
     ]
     for synthese in campagne.syntheses:
         if not (synthese.corrections or synthese.defauts_format or synthese.remises_hors_regle):
             continue
-        lignes += ["", f"### Défauts — {LIBELLES_REDACTEURS[synthese.redacteur]}", ""]
+        lignes += ["", f"### Défauts — {libelle_redacteur(synthese.redacteur)}", ""]
         lignes += [f"- {LIBELLES_CORRECTIONS[c.type]} : {c.nombre}" for c in synthese.corrections]
         lignes += [f"- {d.libelle} : {d.nombre} fiche(s) en défaut" for d in synthese.defauts_format]
         if synthese.remises_hors_regle:
@@ -111,7 +110,7 @@ def en_markdown(campagne: Campagne) -> str:
         lignes += _tableau(
             ["Client", "Rédacteur", "Score", "Points relevés"],
             (
-                [f"{f.client_id} {f.client_nom}", LIBELLES_REDACTEURS[f.redacteur], str(f.score_global), _problemes(f)]
+                [f"{f.client_id} {f.client_nom}", libelle_redacteur(f.redacteur), str(f.score_global), _problemes(f)]
                 for f in sorted(a_detailler, key=lambda f: (f.score_global, f.client_id))
             ),
         )

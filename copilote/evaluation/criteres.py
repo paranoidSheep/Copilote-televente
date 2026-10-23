@@ -23,9 +23,9 @@ from copilote.analyses import ContexteClient, Pertinence, StatutManquant
 from copilote.config import ModeLLM
 from copilote.fiche import Fiche, ModeFiche, TypeCorrection
 from copilote.fiche.repli import MAX_STOCK
+from copilote.fournisseurs import Tarif
 
 from .modeles import ControleFormat, EvaluationFiche, SignalCle, TypeSignal
-from .tarifs import cout_usd
 
 PENALITES: Mapping[TypeCorrection, int] = {
     TypeCorrection.PRODUIT_INCONNU: 25,  # produit inventé
@@ -56,7 +56,10 @@ _REMISES_CITEES = (
 )
 
 
-def evaluer_fiche(fiche: Fiche, contexte: ContexteClient, redacteur: ModeLLM, duree_ms: int) -> EvaluationFiche:
+def evaluer_fiche(
+    fiche: Fiche, contexte: ContexteClient, redacteur: ModeLLM, duree_ms: int, tarif: Tarif | None = None
+) -> EvaluationFiche:
+    """Note une fiche ; `tarif` (prix du fournisseur) sert à estimer son coût, s'il est connu."""
     remises = remises_hors_regle(fiche)
     penalites = sum(PENALITES[c.type] for c in fiche.garde_fous) + PENALITE_REMISE_HORS_REGLE * len(remises)
     fidelite = max(0, 100 - penalites)
@@ -84,7 +87,7 @@ def evaluer_fiche(fiche: Fiche, contexte: ContexteClient, redacteur: ModeLLM, du
         duree_ms=duree_ms,
         jetons_entree=jetons_entree,
         jetons_sortie=jetons_sortie,
-        cout_usd=cout_usd(fiche.modele, jetons_entree, jetons_sortie) if fiche.trace else None,
+        cout_usd=tarif.cout_usd(jetons_entree, jetons_sortie) if tarif and fiche.trace else None,
     )
 
 

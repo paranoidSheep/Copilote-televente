@@ -14,6 +14,7 @@ from copilote.datahub import SourceEnCache, creer_source
 from copilote.datahub.http import HttpDataSource
 from copilote.datahub.mock import CHEMIN_PAR_DEFAUT, MockDataSource
 from copilote.domaine import ClientIntrouvable, ErreurConfiguration, ErreurSourceDonnees, Famille
+from copilote.fournisseurs import ConfigFournisseur
 from scripts.generer_donnees_mock import generer
 
 # --------------------------------------------------------------------------- mock
@@ -233,16 +234,17 @@ def test_configuration_depuis_environnement():
     )
     assert config.source is TypeSource.HTTP
     assert config.mode_llm is ModeLLM.REPLI
-    assert config.cle_anthropic_presente
+    assert config.fournisseurs_utilisables == [ModeLLM.ANTHROPIC]
     assert config.datahub.url == "https://d"
     assert config.duree_cache_secondes == 10
     assert isinstance(creer_source(config), SourceEnCache)
 
 
 def test_mode_auto():
-    assert Config(cle_anthropic_presente=True).mode_llm_effectif is ModeLLM.ANTHROPIC
-    assert Config(cle_anthropic_presente=False).mode_llm_effectif is ModeLLM.SIMULE
-    assert Config(mode_llm=ModeLLM.REPLI, cle_anthropic_presente=True).mode_llm_effectif is ModeLLM.REPLI
+    claude = {ModeLLM.ANTHROPIC: ConfigFournisseur.pour(ModeLLM.ANTHROPIC, cle_api="x")}
+    assert Config(fournisseurs=claude).mode_llm_effectif is ModeLLM.ANTHROPIC
+    assert Config().mode_llm_effectif is ModeLLM.SIMULE
+    assert Config(mode_llm=ModeLLM.REPLI, fournisseurs=claude).mode_llm_effectif is ModeLLM.REPLI
 
 
 def test_configuration_invalide():

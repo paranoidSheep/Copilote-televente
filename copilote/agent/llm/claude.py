@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import anthropic
 from anthropic.types.beta import (
@@ -49,10 +49,11 @@ class ParametresClaude:
     effort: str = "medium"  # bon compromis qualité / latence pour un enchaînement d'outils
     max_tokens: int = 16000
     bascule_refus: bool = True
+    cle_api: str | None = field(default=None, repr=False)  # None : le SDK lit ANTHROPIC_API_KEY
 
 
 class FournisseurClaude:
-    """Claude via l'API Anthropic (la clé est lue par le SDK dans ANTHROPIC_API_KEY)."""
+    """Claude via l'API Anthropic."""
 
     nom = "anthropic"
 
@@ -69,7 +70,8 @@ class FournisseurClaude:
     ) -> SessionClaude:
         if self._client is None:
             try:
-                self._client = anthropic.Anthropic()
+                cle = self._parametres.cle_api
+                self._client = anthropic.Anthropic(api_key=cle) if cle else anthropic.Anthropic()
             except anthropic.AnthropicError as exc:
                 raise ErreurFournisseurLLM("clé d'API Anthropic absente ou invalide") from exc
         return SessionClaude(self._parametres, self._client, systeme, outils)

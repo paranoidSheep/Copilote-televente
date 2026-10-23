@@ -369,7 +369,7 @@ export interface ModeDisponible {
 export type ModeFiche = "ia" | "ia_simulee" | "repli";
 
 /** Qui rédige la fiche d'appel. */
-export type ModeLLM = "auto" | "anthropic" | "simule" | "repli";
+export type ModeLLM = "auto" | "anthropic" | "openai" | "mistral" | "gemini" | "compatible" | "simule" | "repli";
 
 export type MotifEcoulement = "dlc_courte" | "surstock";
 

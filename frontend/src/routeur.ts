@@ -1,12 +1,14 @@
 // Routage par fragment d'URL (#/…) : aucune configuration serveur nécessaire.
 
-import type { ContexteSession, Permission } from "./types-api.js";
+import type { ContexteSession, ModeLLM, Permission } from "./types-api.js";
 
 export interface Contexte {
   session: ContexteSession;
   /** Navigue vers un chemin de l'application (ex. « /tableau-de-bord?jours=7 »). */
   naviguer: (chemin: string) => void;
   peut: (permission: Permission) => boolean;
+  /** Nom court d'un rédacteur : « Mistral AI », « Ollama » (nom configuré), « IA simulée »… */
+  libelleMode: (mode: ModeLLM) => string;
 }
 
 export type Vue = (cible: HTMLElement, parametres: Record<string, string>, contexte: Contexte) => Promise<void>;

@@ -24,7 +24,9 @@ function jaugeCritere(libelle: string, valeur: number) {
   );
 }
 
-function carteSynthese(s: SyntheseRedacteur) {
+type Libelle = (mode: ModeLLM) => string;
+
+function carteSynthese(s: SyntheseRedacteur, libelle: Libelle) {
   const cout = s.cout_par_fiche_usd === null ? "—" : dollars(s.cout_par_fiche_usd);
   return carte(
     null,
@@ -32,7 +34,7 @@ function carteSynthese(s: SyntheseRedacteur) {
       h(
         "div",
         { classe: "entree" },
-        h("div", null, h("div", { classe: "gras" }, LIBELLES.modeLLM[s.redacteur]), h("div", { classe: "meta" }, s.modele ?? "gabarits, sans IA")),
+        h("div", null, h("div", { classe: "gras" }, libelle(s.redacteur)), h("div", { classe: "meta" }, s.modele ?? "gabarits, sans IA")),
         h("div", { classe: `score-redacteur ${varianteScore(s.score_global)}` }, nombre(s.score_global)),
       ),
       h(
@@ -75,7 +77,7 @@ function pointsReleves(e: EvaluationFiche) {
   return points.length ? h("ul", { classe: "petit" }, points.map((p) => h("li", null, p))) : h("p", { classe: "petit doux" }, "Rien à signaler.");
 }
 
-function detailParClient(campagne: Campagne) {
+function detailParClient(campagne: Campagne, libelle: Libelle) {
   const redacteurs = campagne.syntheses.map((s) => s.redacteur);
   const parClient = new Map<string, EvaluationFiche[]>();
   for (const e of campagne.fiches) parClient.set(e.client_id, [...(parClient.get(e.client_id) ?? []), e]);
@@ -104,7 +106,7 @@ function detailParClient(campagne: Campagne) {
                   h("span", { classe: "espace" }),
                   redacteurs.map((r) => {
                     const e = evaluations.find((x) => x.redacteur === r);
-                    return e ? badge(`${LIBELLES.modeLLM[r]} ${e.score_global}`, varianteScore(e.score_global)) : null;
+                    return e ? badge(`${libelle(r)} ${e.score_global}`, varianteScore(e.score_global)) : null;
                   }),
                 ),
                 h(
@@ -114,7 +116,7 @@ function detailParClient(campagne: Campagne) {
                     h(
                       "div",
                       null,
-                      h("div", { classe: "gras petit" }, `${LIBELLES.modeLLM[e.redacteur]} — fidélité ${e.score_fidelite}, couverture ${e.score_couverture}, format ${e.score_format}`),
+                      h("div", { classe: "gras petit" }, `${libelle(e.redacteur)} — fidélité ${e.score_fidelite}, couverture ${e.score_couverture}, format ${e.score_format}`),
                       pointsReleves(e),
                     ),
                   ),
@@ -133,7 +135,7 @@ function detailParClient(campagne: Campagne) {
   });
 }
 
-function campagneDetaillee(campagne: Campagne) {
+function campagneDetaillee(campagne: Campagne, libelle: Libelle) {
   return h(
     "div",
     { classe: "pile" },
@@ -146,15 +148,15 @@ function campagneDetaillee(campagne: Campagne) {
       h("span", { classe: "espace" }),
       campagne.id !== null ? h("a", { classe: "bouton discret", attrs: { href: api.labo.rapportEvaluation(campagne.id) } }, "Rapport Markdown ↓") : null,
     ),
-    h("div", { classe: "comparaison" }, campagne.syntheses.map(carteSynthese)),
+    h("div", { classe: "comparaison" }, campagne.syntheses.map((s) => carteSynthese(s, libelle))),
     campagne.syntheses.some((s) => s.cout_projete)
       ? h("p", { classe: "petit doux", attrs: { style: "margin:0" } }, "* Coût projeté : IA simulée, estimée au tarif du modèle imité (tarifs publics de l'API Anthropic).")
       : null,
-    detailParClient(campagne),
+    detailParClient(campagne, libelle),
   );
 }
 
-function historique(campagnes: ResumeCampagne[], ouvrir: (id: number) => void) {
+function historique(campagnes: ResumeCampagne[], ouvrir: (id: number) => void, libelle: Libelle) {
   if (!campagnes.length) return null;
   const chronologiques = [...campagnes].reverse();
   const redacteurIA = (c: ResumeCampagne) => c.syntheses.find((s) => s.redacteur !== "repli");
@@ -193,7 +195,7 @@ function historique(campagnes: ResumeCampagne[], ouvrir: (id: number) => void) {
                 null,
                 h("td", null, `${dateCourte(c.lancee_le)} ${heure(c.lancee_le)}`),
                 h("td", null, h("code", null, c.empreinte_prompt)),
-                h("td", null, c.syntheses.map((s) => [badge(`${LIBELLES.modeLLM[s.redacteur]} ${nombre(s.score_global)}`, varianteScore(s.score_global)), " "])),
+                h("td", null, c.syntheses.map((s) => [badge(`${libelle(s.redacteur)} ${nombre(s.score_global)}`, varianteScore(s.score_global)), " "])),
                 h("td", { classe: "nombre" }, cout ? dollars(cout) : "—"),
                 h("td", null, h("button", { classe: "bouton discret", attrs: { type: "button" }, on: { click: () => ouvrir(c.id) } }, "Voir")),
               );
@@ -226,7 +228,7 @@ export const vueQualiteIA: Vue = async (cible, _parametres, contexte: Contexte) 
   const afficherCampagne = async (id: number): Promise<void> => {
     remplacer(zoneCampagne, chargement("Chargement de la campagne…"));
     try {
-      remplacer(zoneCampagne, campagneDetaillee(await api.labo.evaluation(id)));
+      remplacer(zoneCampagne, campagneDetaillee(await api.labo.evaluation(id), contexte.libelleMode));
     } catch (erreur) {
       remplacer(zoneCampagne, messageErreur(erreur));
     }
@@ -234,7 +236,7 @@ export const vueQualiteIA: Vue = async (cible, _parametres, contexte: Contexte) 
 
   const chargerHistorique = async (): Promise<void> => {
     const campagnes = await api.labo.evaluations();
-    remplacer(zoneHistorique, historique(campagnes, (id) => void afficherCampagne(id).then(() => zoneCampagne.scrollIntoView({ behavior: "smooth" }))));
+    remplacer(zoneHistorique, historique(campagnes, (id) => void afficherCampagne(id).then(() => zoneCampagne.scrollIntoView({ behavior: "smooth" })), contexte.libelleMode));
     const derniere = campagnes[0];
     if (derniere) await afficherCampagne(derniere.id);
     else remplacer(zoneCampagne, carte(null, vide("Aucune évaluation pour l'instant : lancez la première ci-dessus.")));
@@ -252,7 +254,7 @@ export const vueQualiteIA: Vue = async (cible, _parametres, contexte: Contexte) 
             attrs: { type: "checkbox", checked: choix.has(mode) },
             on: { change: (ev) => ((ev.target as HTMLInputElement).checked ? choix.add(mode) : choix.delete(mode)) },
           }),
-          ` ${LIBELLES.modeLLM[mode]}`,
+          ` ${contexte.libelleMode(mode)}`,
         ),
       ),
       h("span", { classe: "espace" }),
@@ -293,7 +295,7 @@ export const vueQualiteIA: Vue = async (cible, _parametres, contexte: Contexte) 
       { classe: "pile" },
       carte(
         "Lancer une évaluation",
-        [h("p", { classe: "petit doux", attrs: { style: "margin:0 0 10px" } }, "Les fiches sont rédigées hors cache : celles des télévendeurs ne changent pas. Avec Claude, chaque fiche est facturée."), zoneLancement],
+        [h("p", { classe: "petit doux", attrs: { style: "margin:0 0 10px" } }, "Les fiches sont rédigées hors cache : celles des télévendeurs ne changent pas. Avec une vraie IA, chaque fiche est facturée par le fournisseur."), zoneLancement],
       ),
       zoneCampagne,
       zoneHistorique,

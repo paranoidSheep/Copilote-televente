@@ -2,7 +2,7 @@
 import { api, ErreurApi, EVENEMENT_SESSION_EXPIREE } from "./api.js";
 import { badge, messageErreur } from "./composants.js";
 import { h, remplacer } from "./dom.js";
-import { dateLongue } from "./format.js";
+import { dateLongue, LIBELLES } from "./format.js";
 import { preferences } from "./preferences.js";
 import { Routeur } from "./routeur.js";
 import { vueClient360 } from "./vues/client360.js";
@@ -63,6 +63,9 @@ function lancerApplication(racine, session) {
         session,
         naviguer: (chemin) => (window.location.hash = `#${chemin}`),
         peut: (permission) => session.permissions.includes(permission),
+        libelleMode: (mode) => mode === "simule" || mode === "repli" || mode === "auto"
+            ? LIBELLES.modeLLM[mode]
+            : (session.modes_disponibles.find((m) => m.mode === mode)?.libelle ?? LIBELLES.modeLLM[mode]),
     };
     const nav = navigation(contexte);
     const afficher = () => {

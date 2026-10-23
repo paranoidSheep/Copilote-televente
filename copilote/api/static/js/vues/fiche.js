@@ -2,7 +2,7 @@
 import { api } from "../api.js";
 import { badge, boutonCopier, carte, chargement, kpi, messageErreur, repliable, traceExecution, variationClasse, } from "../composants.js";
 import { h, remplacer } from "../dom.js";
-import { dateCourte, euros, heure, jours, LIBELLES, nombre, pourcentage, quantite } from "../format.js";
+import { dateCourte, euros, heure, jours, LIBELLES, libelleFournisseur, nombre, pourcentage, quantite } from "../format.js";
 /** Ce que les établissements du même type ont répondu à cette offre (seulement s'il s'en dégage une tendance). */
 function retourClients(retour) {
     if (!retour || retour.sens === 0)
@@ -18,7 +18,7 @@ function entete(fiche, contexte, recharger, modeCourant) {
         classe: "champ",
         attrs: { "aria-label": "Rédacteur de la fiche", style: "width:auto;max-width:100%" },
         on: { change: (e) => recharger((e.target.value || undefined), false) },
-    }, h("option", { attrs: { value: "" } }, `Rédacteur par défaut (${LIBELLES.modeLLM[contexte.session.mode_par_defaut]})`), contexte.session.modes_disponibles.map((m) => h("option", { attrs: { value: m.mode, selected: m.mode === modeCourant } }, m.libelle)));
+    }, h("option", { attrs: { value: "" } }, `Rédacteur par défaut (${contexte.libelleMode(contexte.session.mode_par_defaut)})`), contexte.session.modes_disponibles.map((m) => h("option", { attrs: { value: m.mode, selected: m.mode === modeCourant } }, m.libelle)));
     return h("section", { classe: "carte" }, h("div", { classe: "ligne" }, h("h2", { attrs: { style: "font-size:1.35rem" } }, c.nom), h("span", { classe: "espace" }), h("a", { classe: "bouton discret", attrs: { href: `#/clients/${encodeURIComponent(c.id)}/360` } }, "Vue 360 ›")), h("p", { classe: "doux", attrs: { style: "margin:2px 0 12px" } }, `${c.type} · ${c.ville} · ${c.contact}`, h_.prochain_jour_habituel ? h("span", null, " · prochaine commande habituelle ", h("strong", null, dateCourte(h_.prochain_jour_habituel))) : null), h("div", { classe: "ligne" }, h("a", { classe: "bouton principal", attrs: { href: `tel:${c.telephone.replace(/\s/g, "")}` } }, `📞 ${c.telephone}`), boutonCopier(() => fiche.texte, "Copier la fiche"), h("button", { classe: "bouton", attrs: { type: "button" }, on: { click: () => recharger(modeCourant, true) } }, "Régénérer"), choixMode), h("p", { classe: "petit doux", attrs: { style: "margin:10px 0 0" } }, badge(LIBELLES.modeFiche[fiche.mode], fiche.mode === "repli" ? "attention" : "info"), " ", fiche.modele ?? "", fiche.avertissement ? h("span", null, " — ", fiche.avertissement) : null, ` · générée à ${heure(fiche.genere_le)}`));
 }
 function habitudes(fiche) {
@@ -73,7 +73,7 @@ export const vueFiche = async (cible, parametres, contexte) => {
             ? carte("À dire au téléphone", h("ol", { classe: "accroches" }, fiche.accroches.map((a) => h("li", null, `« ${a} »`))), { classe: "accent" })
             : null, fiche.points_attention.length ? carte("Points d'attention", h("ul", null, fiche.points_attention.map((p) => h("li", null, p))), { classe: "alerte" }) : null, habitudes(fiche), manquants(fiche)), h("div", { classe: "pile" }, stock(fiche), suggestions(fiche), formulaireCompteRendu(fiche, contexte.session.utilisateur.nom_affiche, () => undefined, tournee ? suiteTournee(tournee, clientId) : undefined), appelsPrecedents(fiche), fiche.garde_fous.length
             ? repliable(`Corrections automatiques (${fiche.garde_fous.length})`, h("ul", null, fiche.garde_fous.map((g) => h("li", { classe: "petit" }, g.message))))
-            : null, fiche.trace ? repliable("Coulisses de l'IA", traceExecution(fiche.trace)) : null, repliable("Version texte", h("pre", { classe: "code" }, fiche.texte)))));
+            : null, fiche.trace ? repliable("Coulisses de l'IA", traceExecution(fiche.trace, libelleFournisseur(fiche.trace.fournisseur, contexte.libelleMode))) : null, repliable("Version texte", h("pre", { classe: "code" }, fiche.texte)))));
     };
     await afficher(undefined, false);
 };

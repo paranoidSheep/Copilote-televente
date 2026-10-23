@@ -1,10 +1,10 @@
 # Raccourcis de développement. `make aide` liste les cibles.
 PYTHON ?= python3
 
-.PHONY: aide installer lancer demo tests qualite types front donnees cassettes contrat simulateur diagnostic evaluer verifier
+.PHONY: aide installer lancer demo tests qualite types front donnees cassettes contrat simulateur simulateur-ia diagnostic evaluer verifier
 
 aide:  ## Liste les cibles
-	@grep -E '^[a-z]+:.*##' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-12s %s\n", $$1, $$2}'
+	@grep -E '^[a-z-]+:.*##' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-14s %s\n", $$1, $$2}'
 
 installer:  ## Installe les dépendances Python
 	$(PYTHON) -m pip install -r requirements-dev.txt
@@ -38,6 +38,9 @@ contrat:  ## Régénère le contrat d'interface du datahub (docs/contrat-datahub
 
 simulateur:  ## Lance le simulateur du datahub sur http://localhost:8100 (avec anomalies)
 	$(PYTHON) -m copilote.datahub.simulateur --anomalies
+
+simulateur-ia:  ## Lance un service d'IA compatible OpenAI simulé sur http://localhost:8200/v1
+	$(PYTHON) -m copilote.agent.llm.simulateur_openai --latence-ms 300
 
 diagnostic:  ## Diagnostic des données de la source configurée
 	$(PYTHON) -m copilote.diagnostic

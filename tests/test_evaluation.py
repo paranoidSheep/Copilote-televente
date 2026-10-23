@@ -25,8 +25,8 @@ from copilote.evaluation import (
 )
 from copilote.evaluation.criteres import nombre_de_phrases
 from copilote.evaluation.synthese import percentile
-from copilote.evaluation.tarifs import cout_usd
 from copilote.fiche import Fiche, ModeFiche, TypeCorrection, assembler_fiche
+from copilote.fournisseurs import TARIFS_PUBLICS, ConfigFournisseur, Tarif
 from copilote.journal import DepotSQLite, Issue, NouveauCompteRendu, Reponse
 from copilote.services import ErreurValidation, EvaluationEnCours
 from scripts import evaluer
@@ -110,9 +110,11 @@ def test_nombre_de_phrases_ignore_les_abreviations():
 
 
 def test_tarifs():
-    assert cout_usd("claude-sonnet-5-5", 1_000_000, 100_000) == pytest.approx(3.0)
-    assert cout_usd("claude-sonnet-5-5 (simulé)", 1000, 0) == pytest.approx(0.002)  # tarif du modèle imité
-    assert cout_usd("modele-inconnu", 1000, 1000) is None and cout_usd(None, 1, 1) is None
+    assert TARIFS_PUBLICS["claude-sonnet-5-5"].cout_usd(1_000_000, 100_000) == pytest.approx(3.0)
+    mistral = ConfigFournisseur.pour(ModeLLM.MISTRAL, modele="mistral-large-latest", tarif=Tarif(2, 6))
+    assert mistral.tarif_effectif == Tarif(2, 6)  # prix configurés
+    assert ConfigFournisseur.pour(ModeLLM.ANTHROPIC).tarif_effectif == TARIFS_PUBLICS["claude-sonnet-5-5"]
+    assert ConfigFournisseur.pour(ModeLLM.OPENAI, modele="modele-inconnu").tarif_effectif is None
 
 
 def test_synthese(ref_simple):

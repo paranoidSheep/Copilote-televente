@@ -208,6 +208,31 @@ const scenarios = {
       await captureElement(bureau, `section.carte:has-text("${texte}")`, nom);
     }
   },
+
+  // Multi-fournisseur : un service compatible OpenAI branché par la seule configuration, comparé aux autres rédacteurs.
+  async "multi-fournisseur"() {
+    const bureau = await page(BUREAU);
+    await connecter(bureau, "responsable");
+    await bureau.goto(base + "/#/clients/C005");
+    await bureau.waitForSelector(".accroches", { timeout: 30000 });
+    await captureElement(bureau, "section.carte:has(select)", "01-fiche-redigee-par-le-fournisseur-configure");
+    await bureau.locator("summary:has-text(\"Coulisses de l'IA\")").click();
+    await captureElement(bureau, "details:has-text(\"Coulisses de l'IA\")", "02-coulisses-appels-au-fournisseur");
+
+    await bureau.goto(base + "/#/labo");
+    await bureau.click("text=Comparer les rédacteurs");
+    await bureau.waitForSelector(".comparaison", { timeout: 60000 });
+    await capture(bureau, "03-labo-comparaison-des-redacteurs");
+
+    await bureau.goto(base + "/#/labo/qualite");
+    await bureau.waitForSelector("text=Lancer l'évaluation");
+    await captureElement(bureau, "section.carte:has-text(\"Lancer l'évaluation\")", "04-banc-choix-des-redacteurs");
+    await bureau.click("text=Lancer l'évaluation");
+    await bureau.waitForSelector("text=Évaluation en cours");
+    await bureau.waitForSelector("text=Évaluation en cours", { state: "detached", timeout: 180000 });
+    await bureau.waitForSelector(".score-redacteur", { timeout: 30000 });
+    await capture(bureau, "05-banc-scores-par-fournisseur");
+  },
 };
 
 try {

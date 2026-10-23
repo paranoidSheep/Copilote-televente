@@ -3,12 +3,14 @@
     python -m scripts.evaluer                              # tous les rédacteurs disponibles, tous les clients
     python -m scripts.evaluer --redacteurs simule,repli --clients C001,C005
     python -m scripts.evaluer --isole --score-minimum 85   # contrôle de non-régression (CI) : code 1 sous 85
-    LLM_MODE=anthropic ANTHROPIC_API_KEY=… python -m scripts.evaluer --redacteurs anthropic
+    ANTHROPIC_API_KEY=… python -m scripts.evaluer --redacteurs anthropic
+    python -m scripts.evaluer --redacteurs anthropic,mistral,compatible   # comparer les fournisseurs configurés
 
 Écrit un rapport JSON (complet) et un rapport Markdown (lisible) dans --sortie,
 et enregistre la campagne dans l'historique, consultable dans l'écran « Qualité IA »
-du labo (sauf --sans-historique). Avec Claude, chaque fiche est facturée : le coût
-estimé est indiqué dans le rapport.
+du labo (sauf --sans-historique). Avec une vraie IA, chaque fiche est facturée par
+le fournisseur : le coût estimé est indiqué dans le rapport (prix connus pour Claude,
+à renseigner pour les autres : {PREFIXE}_PRIX_ENTREE et {PREFIXE}_PRIX_SORTIE).
 
 Les fiches tiennent compte de l'historique d'appels du journal (refus, rappels) : les
 scores dépendent donc de son contenu. --isole évalue dans des conditions de référence
@@ -27,7 +29,7 @@ from copilote.application import creer_application
 from copilote.comptes import DepotUtilisateursMemoire
 from copilote.config import Config, ModeLLM
 from copilote.evaluation import Campagne, DepotEvaluationsMemoire, en_markdown
-from copilote.evaluation.rapport import LIBELLES_REDACTEURS
+from copilote.fournisseurs import libelle_redacteur
 from copilote.journal import DepotMemoire
 
 
@@ -54,7 +56,7 @@ def resume_console(campagne: Campagne) -> str:
     for s in campagne.syntheses:
         cout = "" if s.cout_par_fiche_usd is None else f" · {_fr(s.cout_par_fiche_usd, 4)} $/fiche"
         lignes.append(
-            f"  {LIBELLES_REDACTEURS[s.redacteur]:<16} score {_fr(s.score_global):>5}  "
+            f"  {libelle_redacteur(s.redacteur):<18} score {_fr(s.score_global):>5}  "
             f"(fidélité {_fr(s.score_fidelite)}, couverture {_fr(s.score_couverture)}, format {_fr(s.score_format)})  "
             f"{s.fiches_sans_defaut}/{s.nb_fiches} sans défaut · repli {s.taux_repli_pct} %{cout}"
         )
@@ -64,7 +66,11 @@ def resume_console(campagne: Campagne) -> str:
 def main(arguments: list[str] | None = None) -> int:
     config = Config.depuis_environnement()
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--redacteurs", type=_liste, help="simule, anthropic, repli (défaut : tous ceux disponibles)")
+    parser.add_argument(
+        "--redacteurs",
+        type=_liste,
+        help=f"parmi {', '.join(m.value for m in ModeLLM if m is not ModeLLM.AUTO)} (défaut : tous ceux disponibles)",
+    )
     parser.add_argument("--clients", type=_liste, help="identifiants séparés par des virgules (défaut : tous)")
     parser.add_argument("--sortie", type=Path, default=config.dossier_donnees / "evaluations")
     parser.add_argument("--score-minimum", type=float, help="échoue si un rédacteur IA obtient un score inférieur")
@@ -106,7 +112,7 @@ def main(arguments: list[str] | None = None) -> int:
             s for s in campagne.syntheses if s.redacteur is not ModeLLM.REPLI and s.score_global < args.score_minimum
         ]
         for s in sous_le_seuil:
-            print(f"ÉCHEC : {LIBELLES_REDACTEURS[s.redacteur]} à {_fr(s.score_global)} < {_fr(args.score_minimum)}")
+            print(f"ÉCHEC : {libelle_redacteur(s.redacteur)} à {_fr(s.score_global)} < {_fr(args.score_minimum)}")
         return 1 if sous_le_seuil else 0
     return 0
 

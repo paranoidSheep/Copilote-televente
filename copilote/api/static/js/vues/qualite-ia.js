@@ -11,10 +11,10 @@ const duree = (ms) => (ms < 1000 ? `${ms} ms` : `${nombre(ms / 1000)} s`);
 function jaugeCritere(libelle, valeur) {
     return h("div", { classe: "critere" }, h("span", null, libelle), h("span", { classe: "jauge" }, h("span", { classe: varianteScore(valeur), attrs: { style: `width:${Math.max(2, valeur)}%` } })), h("span", { classe: "nombre gras" }, nombre(valeur)));
 }
-function carteSynthese(s) {
+function carteSynthese(s, libelle) {
     const cout = s.cout_par_fiche_usd === null ? "—" : dollars(s.cout_par_fiche_usd);
     return carte(null, [
-        h("div", { classe: "entree" }, h("div", null, h("div", { classe: "gras" }, LIBELLES.modeLLM[s.redacteur]), h("div", { classe: "meta" }, s.modele ?? "gabarits, sans IA")), h("div", { classe: `score-redacteur ${varianteScore(s.score_global)}` }, nombre(s.score_global))),
+        h("div", { classe: "entree" }, h("div", null, h("div", { classe: "gras" }, libelle(s.redacteur)), h("div", { classe: "meta" }, s.modele ?? "gabarits, sans IA")), h("div", { classe: `score-redacteur ${varianteScore(s.score_global)}` }, nombre(s.score_global))),
         h("div", { classe: "pile", attrs: { style: "gap:6px;margin:12px 0" } }, jaugeCritere("Fidélité", s.score_fidelite), jaugeCritere("Couverture", s.score_couverture), jaugeCritere("Format", s.score_format)),
         h("div", { classe: "kpis" }, kpi(`${s.fiches_sans_defaut}/${s.nb_fiches}`, "Fiches sans défaut"), kpi(`${s.signaux_couverts}/${s.signaux_total}`, "Signaux clés repris"), kpi(duree(s.latence_mediane_ms), "Latence médiane"), kpi(cout, s.cout_projete ? "Coût par fiche (projeté*)" : "Coût par fiche")),
         s.corrections.length || s.defauts_format.length || s.remises_hors_regle || s.taux_repli_pct
@@ -32,7 +32,7 @@ function pointsReleves(e) {
     ];
     return points.length ? h("ul", { classe: "petit" }, points.map((p) => h("li", null, p))) : h("p", { classe: "petit doux" }, "Rien à signaler.");
 }
-function detailParClient(campagne) {
+function detailParClient(campagne, libelle) {
     const redacteurs = campagne.syntheses.map((s) => s.redacteur);
     const parClient = new Map();
     for (const e of campagne.fiches)
@@ -47,8 +47,8 @@ function detailParClient(campagne) {
                 const premiere = evaluations[0];
                 return h("li", null, h("details", { classe: "regle" }, h("summary", null, h("span", { classe: "nom" }, `${premiere.client_id} · ${premiere.client_nom}`), h("span", { classe: "espace" }), redacteurs.map((r) => {
                     const e = evaluations.find((x) => x.redacteur === r);
-                    return e ? badge(`${LIBELLES.modeLLM[r]} ${e.score_global}`, varianteScore(e.score_global)) : null;
-                })), h("div", { classe: "grille deux", attrs: { style: "margin-top:8px" } }, evaluations.map((e) => h("div", null, h("div", { classe: "gras petit" }, `${LIBELLES.modeLLM[e.redacteur]} — fidélité ${e.score_fidelite}, couverture ${e.score_couverture}, format ${e.score_format}`), pointsReleves(e)))), h("a", { classe: "petit", attrs: { href: `#/clients/${encodeURIComponent(premiere.client_id)}` } }, "Ouvrir la fiche du client ›")));
+                    return e ? badge(`${libelle(r)} ${e.score_global}`, varianteScore(e.score_global)) : null;
+                })), h("div", { classe: "grille deux", attrs: { style: "margin-top:8px" } }, evaluations.map((e) => h("div", null, h("div", { classe: "gras petit" }, `${libelle(e.redacteur)} — fidélité ${e.score_fidelite}, couverture ${e.score_couverture}, format ${e.score_format}`), pointsReleves(e)))), h("a", { classe: "petit", attrs: { href: `#/clients/${encodeURIComponent(premiere.client_id)}` } }, "Ouvrir la fiche du client ›")));
             })
             : h("li", null, vide("Toutes les fiches obtiennent 100.")));
     };
@@ -58,12 +58,12 @@ function detailParClient(campagne) {
         compte: lignes.filter((l) => l.some((e) => e.score_global < 100)).length,
     });
 }
-function campagneDetaillee(campagne) {
-    return h("div", { classe: "pile" }, h("div", { classe: "ligne petit doux" }, `Campagne n° ${campagne.id ?? "—"} du ${dateCourte(campagne.lancee_le)} à ${heure(campagne.lancee_le)} · prompt `, h("code", null, campagne.empreinte_prompt), ` · données « ${campagne.source} » · ${new Set(campagne.fiches.map((f) => f.client_id)).size} clients · ${duree(campagne.duree_ms)}`, h("span", { classe: "espace" }), campagne.id !== null ? h("a", { classe: "bouton discret", attrs: { href: api.labo.rapportEvaluation(campagne.id) } }, "Rapport Markdown ↓") : null), h("div", { classe: "comparaison" }, campagne.syntheses.map(carteSynthese)), campagne.syntheses.some((s) => s.cout_projete)
+function campagneDetaillee(campagne, libelle) {
+    return h("div", { classe: "pile" }, h("div", { classe: "ligne petit doux" }, `Campagne n° ${campagne.id ?? "—"} du ${dateCourte(campagne.lancee_le)} à ${heure(campagne.lancee_le)} · prompt `, h("code", null, campagne.empreinte_prompt), ` · données « ${campagne.source} » · ${new Set(campagne.fiches.map((f) => f.client_id)).size} clients · ${duree(campagne.duree_ms)}`, h("span", { classe: "espace" }), campagne.id !== null ? h("a", { classe: "bouton discret", attrs: { href: api.labo.rapportEvaluation(campagne.id) } }, "Rapport Markdown ↓") : null), h("div", { classe: "comparaison" }, campagne.syntheses.map((s) => carteSynthese(s, libelle))), campagne.syntheses.some((s) => s.cout_projete)
         ? h("p", { classe: "petit doux", attrs: { style: "margin:0" } }, "* Coût projeté : IA simulée, estimée au tarif du modèle imité (tarifs publics de l'API Anthropic).")
-        : null, detailParClient(campagne));
+        : null, detailParClient(campagne, libelle));
 }
-function historique(campagnes, ouvrir) {
+function historique(campagnes, ouvrir, libelle) {
     if (!campagnes.length)
         return null;
     const chronologiques = [...campagnes].reverse();
@@ -78,7 +78,7 @@ function historique(campagnes, ouvrir) {
             : null,
         h("div", { classe: "tableau-conteneur" }, h("table", { classe: "tableau" }, h("thead", null, h("tr", null, h("th", null, "Date"), h("th", null, "Prompt"), h("th", null, "Scores"), h("th", { classe: "nombre" }, "Coût"), h("th", null, ""))), h("tbody", null, campagnes.map((c) => {
             const cout = c.syntheses.reduce((t, s) => t + (s.cout_projete ? 0 : (s.cout_total_usd ?? 0)), 0);
-            return h("tr", null, h("td", null, `${dateCourte(c.lancee_le)} ${heure(c.lancee_le)}`), h("td", null, h("code", null, c.empreinte_prompt)), h("td", null, c.syntheses.map((s) => [badge(`${LIBELLES.modeLLM[s.redacteur]} ${nombre(s.score_global)}`, varianteScore(s.score_global)), " "])), h("td", { classe: "nombre" }, cout ? dollars(cout) : "—"), h("td", null, h("button", { classe: "bouton discret", attrs: { type: "button" }, on: { click: () => ouvrir(c.id) } }, "Voir")));
+            return h("tr", null, h("td", null, `${dateCourte(c.lancee_le)} ${heure(c.lancee_le)}`), h("td", null, h("code", null, c.empreinte_prompt)), h("td", null, c.syntheses.map((s) => [badge(`${libelle(s.redacteur)} ${nombre(s.score_global)}`, varianteScore(s.score_global)), " "])), h("td", { classe: "nombre" }, cout ? dollars(cout) : "—"), h("td", null, h("button", { classe: "bouton discret", attrs: { type: "button" }, on: { click: () => ouvrir(c.id) } }, "Voir")));
         })))),
     ], { compte: campagnes.length });
 }
@@ -95,7 +95,7 @@ export const vueQualiteIA = async (cible, _parametres, contexte) => {
     const afficherCampagne = async (id) => {
         remplacer(zoneCampagne, chargement("Chargement de la campagne…"));
         try {
-            remplacer(zoneCampagne, campagneDetaillee(await api.labo.evaluation(id)));
+            remplacer(zoneCampagne, campagneDetaillee(await api.labo.evaluation(id), contexte.libelleMode));
         }
         catch (erreur) {
             remplacer(zoneCampagne, messageErreur(erreur));
@@ -103,7 +103,7 @@ export const vueQualiteIA = async (cible, _parametres, contexte) => {
     };
     const chargerHistorique = async () => {
         const campagnes = await api.labo.evaluations();
-        remplacer(zoneHistorique, historique(campagnes, (id) => void afficherCampagne(id).then(() => zoneCampagne.scrollIntoView({ behavior: "smooth" }))));
+        remplacer(zoneHistorique, historique(campagnes, (id) => void afficherCampagne(id).then(() => zoneCampagne.scrollIntoView({ behavior: "smooth" })), contexte.libelleMode));
         const derniere = campagnes[0];
         if (derniere)
             await afficherCampagne(derniere.id);
@@ -113,7 +113,7 @@ export const vueQualiteIA = async (cible, _parametres, contexte) => {
     const formulaire = () => h("div", { classe: "ligne" }, modes.map((mode) => h("label", { classe: "puce" }, h("input", {
         attrs: { type: "checkbox", checked: choix.has(mode) },
         on: { change: (ev) => (ev.target.checked ? choix.add(mode) : choix.delete(mode)) },
-    }), ` ${LIBELLES.modeLLM[mode]}`)), h("span", { classe: "espace" }), bouton("Lancer l'évaluation", lancer, "principal"));
+    }), ` ${contexte.libelleMode(mode)}`)), h("span", { classe: "espace" }), bouton("Lancer l'évaluation", lancer, "principal"));
     const suivre = async () => {
         if (!cible.isConnected)
             return; // l'utilisateur a quitté la page
@@ -140,7 +140,7 @@ export const vueQualiteIA = async (cible, _parametres, contexte) => {
             remplacer(zoneLancement, formulaire(), messageErreur(erreur));
         }
     }
-    remplacer(cible, ongletsLabo("qualite"), titrePage("Qualité IA", "Chaque client, chaque rédacteur : fidélité aux données, signaux clés repris, format utilisable au téléphone"), h("div", { classe: "pile" }, carte("Lancer une évaluation", [h("p", { classe: "petit doux", attrs: { style: "margin:0 0 10px" } }, "Les fiches sont rédigées hors cache : celles des télévendeurs ne changent pas. Avec Claude, chaque fiche est facturée."), zoneLancement]), zoneCampagne, zoneHistorique));
+    remplacer(cible, ongletsLabo("qualite"), titrePage("Qualité IA", "Chaque client, chaque rédacteur : fidélité aux données, signaux clés repris, format utilisable au téléphone"), h("div", { classe: "pile" }, carte("Lancer une évaluation", [h("p", { classe: "petit doux", attrs: { style: "margin:0 0 10px" } }, "Les fiches sont rédigées hors cache : celles des télévendeurs ne changent pas. Avec une vraie IA, chaque fiche est facturée par le fournisseur."), zoneLancement]), zoneCampagne, zoneHistorique));
     remplacer(zoneLancement, chargement("Chargement…"));
     try {
         // Une campagne lancée avant d'arriver sur la page est reprise là où elle en est.

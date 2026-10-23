@@ -9,30 +9,24 @@ from __future__ import annotations
 
 import os
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from enum import StrEnum
 from pathlib import Path
 
 from copilote.domaine import ErreurConfiguration
+from copilote.fournisseurs import ORDRE_AUTO, PROFILS, ConfigFournisseur, ModeLLM, ProfilFournisseur, Tarif
+
+# ModeLLM est défini dans le catalogue des fournisseurs et réexporté ici, où il a toujours été importé.
+__all__ = ["DOSSIER_DONNEES_PAR_DEFAUT", "Config", "ConfigDatahub", "ConfigSecurite", "ModeLLM", "TypeSource"]
 
 RACINE_PROJET = Path(__file__).resolve().parent.parent
-MODELE_ANTHROPIC_PAR_DEFAUT = "claude-sonnet-5-5"
 DOSSIER_DONNEES_PAR_DEFAUT = RACINE_PROJET / "var"
 
 
 class TypeSource(StrEnum):
     MOCK = "mock"
     HTTP = "http"
-
-
-class ModeLLM(StrEnum):
-    """Qui rédige la fiche d'appel."""
-
-    AUTO = "auto"  # Claude si une clé est configurée, sinon l'IA simulée
-    ANTHROPIC = "anthropic"  # Claude via l'API Anthropic
-    SIMULE = "simule"  # rejeu de rédactions enregistrées (démo sans clé)
-    REPLI = "repli"  # gabarits, sans aucune IA
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,12 +54,35 @@ def _booleen(valeur: str) -> bool:
     raise ValueError(f"valeur booléenne invalide : {valeur!r}")
 
 
+def _fournisseur(profil: ProfilFournisseur, env: Mapping[str, str]) -> ConfigFournisseur:
+    """Lit {PREFIXE}_MODEL, {PREFIXE}_BASE_URL, la clé, les prix et options d'un fournisseur."""
+    p = profil.prefixe
+
+    def lire(suffixe: str) -> str | None:
+        return env.get(f"{p}_{suffixe}", "").strip() or None
+
+    prix_entree, prix_sortie = lire("PRIX_ENTREE"), lire("PRIX_SORTIE")
+    tarif = None
+    if prix_entree is not None or prix_sortie is not None:
+        tarif = Tarif(float((prix_entree or "0").replace(",", ".")), float((prix_sortie or "0").replace(",", ".")))
+    max_jetons = lire("MAX_TOKENS")
+    return ConfigFournisseur.pour(
+        profil.mode,
+        modele=lire("MODEL") or profil.modele_par_defaut,
+        cle_api=env.get(profil.variable_cle, "").strip() or None,
+        url=lire("BASE_URL") or profil.url_par_defaut,
+        nom=lire("NOM"),
+        outils_stricts=_booleen(lire("OUTILS_STRICTS") or "non"),
+        max_jetons_sortie=int(max_jetons) if max_jetons else None,
+        tarif=tarif,
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class Config:
     source: TypeSource = TypeSource.MOCK
     mode_llm: ModeLLM = ModeLLM.AUTO
-    modele_anthropic: str = MODELE_ANTHROPIC_PAR_DEFAUT
-    cle_anthropic_presente: bool = False
+    fournisseurs: Mapping[ModeLLM, ConfigFournisseur] = field(default_factory=dict)
     chemin_mock: Path | None = None
     datahub: ConfigDatahub = ConfigDatahub()
     dossier_donnees: Path = DOSSIER_DONNEES_PAR_DEFAUT
@@ -83,8 +100,7 @@ class Config:
             return cls(
                 source=TypeSource(env.get("DATASOURCE", TypeSource.MOCK).strip().lower()),
                 mode_llm=ModeLLM(env.get("LLM_MODE", ModeLLM.AUTO).strip().lower()),
-                modele_anthropic=env.get("ANTHROPIC_MODEL", MODELE_ANTHROPIC_PAR_DEFAUT),
-                cle_anthropic_presente=bool(env.get("ANTHROPIC_API_KEY")),
+                fournisseurs={mode: _fournisseur(profil, env) for mode, profil in PROFILS.items()},
                 chemin_mock=Path(env["MOCK_DATA_PATH"]) if env.get("MOCK_DATA_PATH") else None,
                 datahub=ConfigDatahub(
                     url=env.get("DATAHUB_URL") or None,
@@ -130,4 +146,22 @@ class Config:
         """Résout le mode « auto » en un mode concret."""
         if self.mode_llm is not ModeLLM.AUTO:
             return self.mode_llm
-        return ModeLLM.ANTHROPIC if self.cle_anthropic_presente else ModeLLM.SIMULE
+        return next(iter(self.fournisseurs_utilisables), ModeLLM.SIMULE)
+
+    @property
+    def fournisseurs_utilisables(self) -> list[ModeLLM]:
+        """Fournisseurs entièrement configurés, dans l'ordre de préférence de LLM_MODE=auto."""
+        return [m for m in ORDRE_AUTO if (c := self.fournisseurs.get(m)) is not None and c.utilisable]
+
+    @property
+    def avertissements(self) -> list[str]:
+        """Fournisseurs à moitié configurés (ex. clé sans modèle) : signalés au démarrage."""
+        messages = []
+        for mode, c in self.fournisseurs.items():
+            renseigne = c.cle_api or (c.modele and c.modele != c.profil.modele_par_defaut)
+            if renseigne and not c.utilisable:
+                manque = ", ".join(c.manquants)
+                messages.append(f"{c.libelle} n'est pas activé : {manque} à renseigner.")
+            if mode is self.mode_llm and not c.utilisable:
+                messages.append(f"LLM_MODE={mode} mais {c.libelle} n'est pas configuré : fiches rédigées sans IA.")
+        return messages

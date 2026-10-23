@@ -13,12 +13,13 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import timedelta
 
-from copilote.agent.llm import FournisseurClaude, FournisseurLLM, FournisseurSimule, ParametresClaude
+from copilote.agent.llm import FournisseurLLM, FournisseurSimule, creer_fournisseurs
 from copilote.analyses import REGLES_PAR_DEFAUT, ReglesMetier
 from copilote.comptes import DepotUtilisateurs, DepotUtilisateursSQLite, ServiceComptes, SignataireSessions
 from copilote.config import Config, ModeLLM
 from copilote.datahub import DataSource, creer_source
 from copilote.evaluation import DepotEvaluations, DepotEvaluationsSQLite
+from copilote.fournisseurs import MODELE_IMITE_PAR_LA_SIMULATION, TARIFS_PUBLICS, Tarif
 from copilote.horloge import Horloge, HorlogeAlignee
 from copilote.journal import DepotJournal, DepotSQLite
 from copilote.services import (
@@ -55,13 +56,20 @@ def signataire_sessions(config: Config) -> SignataireSessions:
 
 
 def fournisseurs_par_defaut(config: Config) -> dict[ModeLLM, FournisseurLLM]:
-    """IA simulée toujours disponible ; Claude seulement si une clé est configurée."""
+    """IA simulée toujours disponible, plus chaque fournisseur entièrement configuré (Claude, Mistral…)."""
     fournisseurs: dict[ModeLLM, FournisseurLLM] = {
         ModeLLM.SIMULE: FournisseurSimule(latence_ms=config.latence_simulee_ms)
     }
-    if config.cle_anthropic_presente:
-        fournisseurs[ModeLLM.ANTHROPIC] = FournisseurClaude(ParametresClaude(modele=config.modele_anthropic))
+    fournisseurs.update(creer_fournisseurs(config.fournisseurs))
     return fournisseurs
+
+
+def tarifs_des_redacteurs(config: Config) -> dict[ModeLLM, Tarif]:
+    """Prix connus de chaque rédacteur ; l'IA simulée est estimée au tarif du modèle qu'elle imite."""
+    tarifs = {mode: t for mode, c in config.fournisseurs.items() if (t := c.tarif_effectif) is not None}
+    if (imite := TARIFS_PUBLICS.get(MODELE_IMITE_PAR_LA_SIMULATION)) is not None:
+        tarifs[ModeLLM.SIMULE] = imite
+    return tarifs
 
 
 def creer_application(
@@ -75,6 +83,8 @@ def creer_application(
     depot_evaluations: DepotEvaluations | None = None,
     regles: ReglesMetier = REGLES_PAR_DEFAUT,
 ) -> Application:
+    for avertissement in config.avertissements:
+        journal_app.warning(avertissement)
     source = source or creer_source(config)
     depot = depot_journal or DepotSQLite(config.chemin_journal)
     horloge = horloge or HorlogeAlignee(source.date_du_jour)
@@ -97,6 +107,9 @@ def creer_application(
         ),
         diagnostic=ServiceDiagnostic(source, regles),
         evaluation=ServiceEvaluation(
-            fiches, referentiels, depot_evaluations or DepotEvaluationsSQLite(config.chemin_evaluations)
+            fiches,
+            referentiels,
+            depot_evaluations or DepotEvaluationsSQLite(config.chemin_evaluations),
+            tarifs=tarifs_des_redacteurs(config),
         ),
     )

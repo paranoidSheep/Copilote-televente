@@ -41,10 +41,11 @@ python -m copilote                                # http://localhost:8000
 
 Sur un poste de développement, on peut se passer de connexion avec `AUTHENTIFICATION=non`.
 
-**Sans clé d'API, l'IA est simulée.** Le copilote rejoue des rédactions produites par Claude (voir plus bas), avec exactement le même protocole que l'IA réelle. Pour utiliser Claude :
+**Sans clé d'API, l'IA est simulée.** Le copilote rejoue des rédactions produites par Claude (voir plus bas), avec exactement le même protocole que l'IA réelle. Pour utiliser une vraie IA, il suffit de configurer un fournisseur : Claude, Mistral, OpenAI, Gemini, ou un modèle hébergé sur vos serveurs (voir [Choisir son fournisseur d'IA](#choisir-son-fournisseur-dia)).
 
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...
+export ANTHROPIC_API_KEY=sk-ant-...                                   # Claude
+# ou : export MISTRAL_API_KEY=... MISTRAL_MODEL=mistral-medium-latest  # Mistral AI
 python -m copilote
 ```
 
@@ -59,7 +60,7 @@ flowchart LR
     A[Datahub ERP<br/>lecture seule] --> B[Referentiel<br/>instantané indexé]
     B --> C[Analyses<br/>calculs purs, testés]
     J[(Journal local<br/>comptes-rendus)] --> C
-    C -->|outils| D[Agent IA<br/>Claude · simulé]
+    C -->|outils| D[Agent IA<br/>Claude · Mistral · OpenAI<br/>Gemini · local · simulé]
     D -->|rédaction JSON| E[Assemblage<br/>garde-fous]
     C --> E
     C -->|repli sans IA| E
@@ -67,7 +68,7 @@ flowchart LR
 ```
 
 1. Les **analyses** font tous les calculs : rythmes d'achat, retards, rotation du stock, remises, pertinence et priorités. C'est du code déterministe et entièrement testé.
-2. L'**agent** donne ces analyses à Claude sous forme d'outils (`historique_client`, `produits_habituels_manquants`, `stock_a_ecouler`, `suggestions_croisees`, `historique_appels`, `details_produit`). Claude les appelle, puis soumet sa rédaction via l'outil `soumettre_fiche`, dont le schéma JSON est strict.
+2. L'**agent** donne ces analyses au modèle sous forme d'outils (`historique_client`, `produits_habituels_manquants`, `stock_a_ecouler`, `suggestions_croisees`, `historique_appels`, `details_produit`). Le modèle les appelle, puis soumet sa rédaction via l'outil `soumettre_fiche`, dont le schéma JSON est strict.
 3. L'**assemblage** construit la fiche finale et applique des **garde-fous**. Chaque correction est consignée et visible dans la fiche (« Corrections automatiques ») :
    - un produit cité par l'IA mais absent des analyses est écarté ;
    - une remise supérieure à la remise suggérée est ramenée à ce plafond ;
@@ -79,16 +80,55 @@ flowchart LR
 4. Les outils sont **verrouillés sur le client** de la fiche : l'IA ne peut pas lire les données d'un autre client.
 5. La **trace** de chaque rédaction est conservée et affichée dans « Coulisses de l'IA » : appels au modèle, appels d'outils, durées et jetons.
 
-### Trois rédacteurs interchangeables
+### Des rédacteurs interchangeables
 
-Le mode se choisit avec `LLM_MODE`. La fiche indique toujours qui l'a rédigée.
+Le rédacteur se choisit avec `LLM_MODE`. La fiche indique toujours qui l'a rédigée, et avec quel modèle.
 
 | Mode | Rédacteur | Quand |
 |---|---|---|
-| `anthropic` | Claude (`claude-sonnet-5-5`) via le SDK officiel | Production, avec `ANTHROPIC_API_KEY` |
+| `anthropic`, `mistral`, `openai`, `gemini`, `compatible` | Une vraie IA, chez le fournisseur choisi (voir ci-dessous) | Production |
 | `simule` | IA simulée : rejeu de conversations enregistrées | Démo et tests, sans clé ni réseau |
-| `repli` | Gabarits, sans IA | Secours automatique si l'IA échoue (réseau, quota, refus, réponse invalide) |
-| `auto` (par défaut) | `anthropic` si une clé est présente, sinon `simule` | — |
+| `repli` | Gabarits, sans IA | Secours automatique si l'IA échoue (réseau, quota, clé refusée, réponse invalide) |
+| `auto` (par défaut) | Le premier fournisseur configuré, dans l'ordre du tableau ci-dessous ; à défaut, `simule` | — |
+
+### Choisir son fournisseur d'IA
+
+**Changer de fournisseur ne demande aucune modification de code** : on renseigne ses variables d'environnement, puis on le sélectionne avec `LLM_MODE`. Plusieurs fournisseurs peuvent être configurés en même temps : un responsable choisit alors le rédacteur d'une fiche dans la fiche elle-même, les compare côte à côte dans le **Labo**, et les note sur les mêmes critères avec le **banc d'évaluation** (voir plus bas).
+
+| `LLM_MODE` | Fournisseur | À renseigner | Adresse par défaut |
+|---|---|---|---|
+| `anthropic` | Claude (Anthropic) | `ANTHROPIC_API_KEY` ; `ANTHROPIC_MODEL` facultatif (`claude-sonnet-5-5`) | API Anthropic |
+| `mistral` | Mistral AI | `MISTRAL_API_KEY`, `MISTRAL_MODEL` | `https://api.mistral.ai/v1` |
+| `openai` | OpenAI | `OPENAI_API_KEY`, `OPENAI_MODEL` | API OpenAI |
+| `gemini` | Gemini (Google) | `GEMINI_API_KEY`, `GEMINI_MODEL` | `https://generativelanguage.googleapis.com/v1beta/openai/` |
+| `compatible` | Tout service compatible OpenAI : Ollama, vLLM, LM Studio, OpenRouter… | `LLM_COMPATIBLE_BASE_URL`, `LLM_COMPATIBLE_MODEL` ; clé `LLM_COMPATIBLE_API_KEY` si le service en demande une ; nom affiché `LLM_COMPATIBLE_NOM` (ex. « Ollama ») | — |
+
+Seul Claude a un modèle par défaut : les catalogues des autres fournisseurs changent souvent, et un nom de modèle périmé ferait échouer chaque fiche. Le nom exact se trouve dans la documentation du fournisseur. Variables facultatives, pour chaque préfixe (`ANTHROPIC`, `MISTRAL`, `OPENAI`, `GEMINI`, `LLM_COMPATIBLE`) :
+
+| Variable | Rôle |
+|---|---|
+| `{PREFIXE}_BASE_URL` | Autre adresse : proxy d'entreprise, région, passerelle (Azure OpenAI, LiteLLM…) |
+| `{PREFIXE}_PRIX_ENTREE`, `{PREFIXE}_PRIX_SORTIE` | Prix en dollars par million de jetons, pour le coût estimé du banc d'évaluation (connus d'office pour Claude) |
+| `{PREFIXE}_MAX_TOKENS` | Plafond de la réponse (8 192 jetons par défaut pour les fournisseurs compatibles OpenAI) |
+| `{PREFIXE}_OUTILS_STRICTS` | `oui` pour imposer le schéma des outils (`strict`), si le fournisseur le prend en charge |
+
+Au démarrage, le journal signale un fournisseur à moitié configuré (« Mistral AI n'est pas activé : MISTRAL_MODEL à renseigner. ») ou un `LLM_MODE` qui désigne un fournisseur non configuré. Les clés ne sont jamais affichées ni journalisées.
+
+**Où vont les données ?** La fiche envoie au fournisseur le nom du client, son historique d'achats et l'état du stock. Le choix du fournisseur est donc aussi un choix d'hébergement :
+- **Mistral AI**, société française, annonce un hébergement de son API dans l'Union européenne ;
+- **un modèle local** (`compatible`, avec Ollama ou vLLM sur vos serveurs) : les données ne quittent pas l'entreprise. Il faut un modèle qui sait appeler des outils (« function calling ») ; le banc d'évaluation indique s'il est à la hauteur ;
+- **Claude, OpenAI, Gemini** : conditions et régions d'hébergement propres à chaque contrat.
+
+**Essayer le branchement sans clé.** `make simulateur-ia` lance un service compatible OpenAI qui rejoue les rédactions de l'IA simulée. Toute la chaîne d'un vrai fournisseur est alors à l'œuvre (SDK `openai`, réseau, appels d'outils, choix du rédacteur dans la fiche, comparaison dans le labo), avec la même configuration que pour Ollama ou vLLM :
+
+```bash
+make simulateur-ia &
+LLM_COMPATIBLE_BASE_URL=http://127.0.0.1:8200/v1 LLM_COMPATIBLE_MODEL=cassettes LLM_COMPATIBLE_NOM="Simulateur OpenAI" python -m copilote
+```
+
+**Deux adaptateurs couvrent tous les fournisseurs** (`copilote/agent/llm/`) :
+- `claude.py` utilise le SDK officiel `anthropic` ;
+- `chat_completions.py` utilise le SDK officiel `openai` et l'API « Chat Completions », que Mistral, Gemini, Ollama et vLLM exposent aussi. Seuls l'adresse, la clé et le modèle changent. Le catalogue des fournisseurs et leurs particularités (par exemple `max_completion_tokens` pour OpenAI) est dans `copilote/fournisseurs.py`.
 
 **L'IA simulée** (`copilote/agent/llm/cassettes/`) contient une conversation par client : appels d'outils successifs, éventuel approfondissement avec `details_produit`, puis rédaction. Ces 30 rédactions ont été **écrites par Claude** à partir des résultats réels des outils sur le jeu de données fictif.
 
@@ -100,7 +140,7 @@ Le fournisseur simulé suit le même protocole que l'API. Il exige notamment le 
 - historique complet renvoyé à chaque tour (blocs de réflexion compris) ;
 - bascule serveur en cas de refus (`fallbacks: "default"`), désactivable avec `ParametresClaude(bascule_refus=False)`.
 
-Il est testé à travers le vrai SDK, avec un transport HTTP simulé : le corps des requêtes et la traduction des erreurs (429, 401, 5xx) sont vérifiés.
+Les deux adaptateurs sont testés à travers leur vrai SDK, avec un transport HTTP simulé : le corps des requêtes, la boucle d'appels d'outils et la traduction des erreurs (401, 404, 429, 5xx, service injoignable) sont vérifiés.
 
 ### Apprendre des retours clients
 
@@ -113,7 +153,7 @@ Les seuils sont réglables dans `copilote/analyses/regles.py`, comme les objecti
 
 ### Mesurer la qualité : le banc d'évaluation
 
-Avant de passer à Claude en production, et à chaque modification du prompt, le **banc d'évaluation** (`copilote/evaluation/`) rédige la fiche de chaque client avec chaque rédacteur. Il note chaque fiche sur des critères **vérifiables**, sans IA juge :
+Avant de mettre une IA en production, pour choisir entre plusieurs fournisseurs, et à chaque modification du prompt, le **banc d'évaluation** (`copilote/evaluation/`) rédige la fiche de chaque client avec chaque rédacteur. Il note chaque fiche sur des critères **vérifiables**, sans IA juge :
 
 | Critère | Poids | Ce qui est mesuré |
 |---|---|---|
@@ -121,17 +161,18 @@ Avant de passer à Claude en production, et à chaque modification du prompt, le
 | Couverture | 35 % | Signaux clés repris par le rédacteur lui-même : les 3 produits habituels les plus en retard, les lots urgents d'un produit que le client achète, le rappel promis |
 | Format | 25 % | Contact nommé, accroches courtes (15 s à l'oral), vouvoiement, résumé en 2 ou 3 phrases, chaque proposition argumentée |
 
-S'y ajoutent la latence, les jetons et le **coût estimé** au tarif public du modèle (projeté pour l'IA simulée). Chaque campagne est enregistrée avec l'**empreinte du prompt** (prompt système et outils). On peut ainsi comparer deux versions du prompt, dans l'écran **Labo › Qualité IA** ou avec la commande :
+S'y ajoutent la latence, les jetons et le **coût estimé** : au tarif public pour Claude, aux prix configurés pour les autres fournisseurs (projeté au tarif de Claude Sonnet pour l'IA simulée). Chaque campagne est enregistrée avec l'**empreinte du prompt** (prompt système et outils). On peut ainsi comparer deux versions du prompt, dans l'écran **Labo › Qualité IA** ou avec la commande :
 
 ```bash
 python -m scripts.evaluer                                    # tous les rédacteurs, rapports JSON et Markdown
 python -m scripts.evaluer --redacteurs anthropic             # Claude seul (facturé : coût estimé dans le rapport)
+python -m scripts.evaluer --redacteurs anthropic,mistral,compatible   # comparer des fournisseurs sur les mêmes clients
 python -m scripts.evaluer --redacteurs simule,repli --isole --score-minimum 85   # garde-fou de la CI
 ```
 
 À savoir pour lire les scores :
 - **Le repli obtient 100 par construction** : il est bâti sur les analyses. Le banc mesure les erreurs vérifiables, pas la qualité commerciale du discours, qui reste l'apport de l'IA.
-- **L'IA simulée rejoue des réponses enregistrées.** Elle ne réagit donc ni au prompt ni à l'historique d'appels. Avec un journal vide (`--isole`, utilisé par la CI), elle obtient 90 ; avec le journal de démonstration (refus, rappels), les garde-fous la corrigent souvent et son score baisse. L'effet d'une modification du prompt se mesure avec Claude.
+- **L'IA simulée rejoue des réponses enregistrées.** Elle ne réagit donc ni au prompt ni à l'historique d'appels. Avec un journal vide (`--isole`, utilisé par la CI), elle obtient 90 ; avec le journal de démonstration (refus, rappels), les garde-fous la corrigent souvent et son score baisse. L'effet d'une modification du prompt se mesure avec une vraie IA.
 - Les fiches sont rédigées **hors cache** : une évaluation ne change jamais les fiches servies aux télévendeurs.
 
 ## Architecture
@@ -205,9 +246,8 @@ Toutes les routes, sauf `/sante`, `/auth/*` et l'interface, exigent une session.
 | Variable | Défaut | Rôle |
 |---|---|---|
 | `DATASOURCE` | `mock` | `mock` (données simulées) ou `http` (vrai datahub) |
-| `LLM_MODE` | `auto` | `auto`, `anthropic`, `simule` ou `repli` |
-| `ANTHROPIC_API_KEY` | (vide) | Clé d'API Anthropic |
-| `ANTHROPIC_MODEL` | `claude-sonnet-5-5` | Modèle Claude |
+| `LLM_MODE` | `auto` | `auto`, `anthropic`, `mistral`, `openai`, `gemini`, `compatible`, `simule` ou `repli` |
+| `ANTHROPIC_API_KEY`, `MISTRAL_API_KEY`… | (vides) | Accès aux fournisseurs d'IA : voir [Choisir son fournisseur d'IA](#choisir-son-fournisseur-dia) |
 | `LLM_LATENCE_SIMULEE_MS` | `0` | Latence ajoutée à l'IA simulée (démo réaliste) |
 | `DOSSIER_DONNEES` | `var/` (`/data` en Docker) | Données propres au copilote : journal, comptes, sauvegardes |
 | `JOURNAL_PATH` | `DOSSIER_DONNEES/journal.sqlite3` | Journal local des comptes-rendus |
@@ -243,6 +283,7 @@ Les tests sont organisés par couche :
 | `test_journal.py` | Stockage SQLite et en mémoire, statistiques |
 | `test_fiche.py` | Garde-fous, repli, panier |
 | `test_agent.py` | Outils, boucle de rédaction, IA simulée, adaptateur Claude via le SDK |
+| `test_fournisseurs.py` | Catalogue et configuration des fournisseurs, adaptateur Chat Completions (OpenAI, Mistral, Gemini, local) via le SDK, bascule en repli, fiche et banc d'évaluation de bout en bout sur un vrai serveur HTTP |
 | `test_services.py` | Choix du rédacteur, cache des fiches, journal |
 | `test_api.py` | Endpoints, codes d'erreur, types TypeScript à jour |
 | `test_comptes.py` | Mots de passe, sessions signées, blocage, droits par rôle, en-têtes de sécurité, administration, sauvegardes |

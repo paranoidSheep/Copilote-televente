@@ -38,9 +38,34 @@ Variables à renseigner au minimum :
 | `DOMAINE` | `copilote.mon-entreprise.fr` | Nom de domaine du site (certificat HTTPS) |
 | `EMAIL_ACME` | `admin@mon-entreprise.fr` | Compte Let's Encrypt (alertes d'expiration) |
 | `SESSION_SECRET` | 64 caractères aléatoires | Signature des sessions : **obligatoire**, à garder secret |
-| `ANTHROPIC_API_KEY` | `sk-ant-…` | Facultatif : sans clé, l'IA simulée est utilisée |
+| `ANTHROPIC_API_KEY`, `MISTRAL_API_KEY`… | `sk-ant-…` | Facultatif : sans fournisseur d'IA configuré, l'IA simulée est utilisée (voir ci-dessous) |
 
 > Le fichier `.env` contient des secrets : il ne doit jamais être versionné. Il est déjà exclu par `.gitignore`.
+
+### Choisir le fournisseur d'IA
+
+Le copilote fonctionne avec Claude, Mistral, OpenAI, Gemini ou un modèle local. On renseigne dans `.env` les variables du ou des fournisseurs retenus (le fichier d'exemple les liste toutes), et `LLM_MODE` désigne celui qui rédige les fiches par défaut :
+
+```bash
+# Exemple : Mistral par défaut, Claude disponible pour comparer dans le Labo
+LLM_MODE=mistral
+MISTRAL_API_KEY=...
+MISTRAL_MODEL=mistral-medium-latest
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+Après modification : `docker compose up -d` (le conteneur redémarre avec la nouvelle configuration). Au démarrage, `docker compose logs copilote` signale un fournisseur à moitié configuré.
+
+**Essayer sans clé.** Le profil `simulateur` démarre aussi un service d'IA compatible OpenAI simulé, qui rejoue les rédactions de démonstration. Avec dans `.env` : `LLM_COMPATIBLE_BASE_URL=http://ia-simulateur:8200/v1`, `LLM_COMPATIBLE_MODEL=cassettes`, `LLM_COMPATIBLE_NOM=Simulateur OpenAI`, puis `docker compose --profile simulateur up -d`, le rédacteur « Simulateur OpenAI » apparaît dans la fiche et le labo : c'est exactement le chemin qu'emprunteront Mistral, OpenAI, Gemini ou Ollama.
+
+**Modèle local, sans envoi de données à l'extérieur.** Le service Ollama facultatif tourne sur le VPS, dans le réseau interne :
+
+```bash
+docker compose --profile ollama up -d
+docker compose exec ollama ollama pull qwen3      # un modèle qui sait appeler des outils
+```
+
+puis dans `.env` : `LLM_MODE=compatible`, `LLM_COMPATIBLE_BASE_URL=http://ollama:11434/v1`, `LLM_COMPATIBLE_MODEL=qwen3`, `LLM_COMPATIBLE_NOM=Ollama`. Sans carte graphique, un modèle de quelques milliards de paramètres rédige une fiche en une à plusieurs minutes : le banc d'évaluation (section 9) dit si la qualité suit.
 
 ## 4. Démarrer
 
@@ -155,9 +180,10 @@ Le banc d'évaluation note les fiches de tous les clients. Il se lance depuis **
 ```bash
 docker compose exec copilote python -m scripts.evaluer                        # IA simulée et repli
 docker compose exec copilote python -m scripts.evaluer --redacteurs anthropic # Claude (nécessite ANTHROPIC_API_KEY, facturé)
+docker compose exec copilote python -m scripts.evaluer --redacteurs anthropic,mistral,compatible   # comparer les fournisseurs configurés
 ```
 
-Les campagnes sont conservées dans le volume (`/data/evaluations.sqlite3`, rapports dans `/data/evaluations/`). Avec Claude, prévoir quelques minutes et environ un centime de dollar par fiche : le coût exact estimé figure dans le rapport.
+Les campagnes sont conservées dans le volume (`/data/evaluations.sqlite3`, rapports dans `/data/evaluations/`). Avec Claude, prévoir quelques minutes et environ un centime de dollar par fiche : le coût exact estimé figure dans le rapport. Pour les autres fournisseurs, le coût n'est estimé que si leurs prix sont renseignés (`MISTRAL_PRIX_ENTREE`, `MISTRAL_PRIX_SORTIE`…).
 
 ## 10. Supervision et journaux
 

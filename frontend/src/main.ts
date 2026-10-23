@@ -3,7 +3,7 @@
 import { api, ErreurApi, EVENEMENT_SESSION_EXPIREE } from "./api.js";
 import { badge, messageErreur } from "./composants.js";
 import { h, remplacer } from "./dom.js";
-import { dateLongue } from "./format.js";
+import { dateLongue, LIBELLES } from "./format.js";
 import { preferences } from "./preferences.js";
 import { type Contexte, type Rubrique, Routeur } from "./routeur.js";
 import type { ContexteSession, Permission, Role } from "./types-api.js";
@@ -116,6 +116,10 @@ function lancerApplication(racine: HTMLElement, session: ContexteSession): void 
     session,
     naviguer: (chemin) => (window.location.hash = `#${chemin}`),
     peut: (permission) => session.permissions.includes(permission),
+    libelleMode: (mode) =>
+      mode === "simule" || mode === "repli" || mode === "auto"
+        ? LIBELLES.modeLLM[mode]
+        : (session.modes_disponibles.find((m) => m.mode === mode)?.libelle ?? LIBELLES.modeLLM[mode]),
   };
   const nav = navigation(contexte);
 

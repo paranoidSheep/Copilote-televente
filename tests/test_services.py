@@ -11,6 +11,7 @@ from copilote.application import creer_application, fournisseurs_par_defaut
 from copilote.config import Config, ModeLLM
 from copilote.domaine import ClientIntrouvable
 from copilote.fiche import ModeFiche
+from copilote.fournisseurs import ConfigFournisseur
 from copilote.journal import DepotMemoire, Issue, LigneCompteRendu, NouveauCompteRendu, Origine, Reponse
 from copilote.services import ErreurValidation
 
@@ -32,7 +33,8 @@ def test_ia_simulee_par_defaut_sans_cle(application):
 
 def test_modes_disponibles():
     assert set(fournisseurs_par_defaut(Config())) == {ModeLLM.SIMULE}
-    assert set(fournisseurs_par_defaut(Config(cle_anthropic_presente=True))) == {ModeLLM.SIMULE, ModeLLM.ANTHROPIC}
+    claude = {ModeLLM.ANTHROPIC: ConfigFournisseur.pour(ModeLLM.ANTHROPIC, cle_api="x")}
+    assert set(fournisseurs_par_defaut(Config(fournisseurs=claude))) == {ModeLLM.SIMULE, ModeLLM.ANTHROPIC}
 
 
 def test_mode_repli_explicite(application):

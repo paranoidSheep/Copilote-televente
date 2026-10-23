@@ -85,8 +85,8 @@ function etapeTrace(etape) {
     return h("div", { classe: `etape ${etape.erreur ? "erreur" : ""}`.trim() }, h("span", { classe: "type", attrs: { title: etape.type } }, LIBELLES.etape[etape.type]), h("span", { classe: "resume" }, etape.resume, h("span", { classe: "doux petit" }, jetons)), h("span", { classe: "duree petit" }, `${etape.duree_ms} ms`), etape.detail ? h("pre", { classe: "code" }, etape.detail) : null);
 }
 /** Déroulé de la rédaction par l'IA : appels au modèle et aux outils. */
-export function traceExecution(trace) {
+export function traceExecution(trace, fournisseur = trace.fournisseur) {
     const entree = trace.etapes.reduce((t, e) => t + (e.jetons_entree ?? 0), 0);
     const sortie = trace.etapes.reduce((t, e) => t + (e.jetons_sortie ?? 0), 0);
-    return h("div", { classe: "pile" }, h("div", { classe: "ligne petit doux" }, badge(trace.fournisseur, "info"), trace.modele, `· ${trace.etapes.length} étapes · ${trace.duree_totale_ms} ms · ${nombre(entree)} jetons lus, ${nombre(sortie)} écrits`), h("div", { classe: "trace" }, trace.etapes.map(etapeTrace)));
+    return h("div", { classe: "pile" }, h("div", { classe: "ligne petit doux" }, badge(fournisseur, "info"), trace.modele, `· ${trace.etapes.length} étapes · ${trace.duree_totale_ms} ms · ${nombre(entree)} jetons lus, ${nombre(sortie)} écrits`), h("div", { classe: "trace" }, trace.etapes.map(etapeTrace)));
 }

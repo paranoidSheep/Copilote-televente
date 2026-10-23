@@ -19,11 +19,10 @@ from copilote.journal import DepotJournal
 
 from .referentiel import FournisseurReferentiel
 
-MODE_FICHE: dict[ModeLLM, ModeFiche] = {
-    ModeLLM.ANTHROPIC: ModeFiche.IA,
-    ModeLLM.SIMULE: ModeFiche.IA_SIMULEE,
-    ModeLLM.REPLI: ModeFiche.REPLI,
-}
+
+def mode_fiche(mode: ModeLLM) -> ModeFiche:
+    """Nature de la fiche : rédigée par une IA (quel que soit le fournisseur), simulée, ou par gabarits."""
+    return {ModeLLM.SIMULE: ModeFiche.IA_SIMULEE, ModeLLM.REPLI: ModeFiche.REPLI}.get(mode, ModeFiche.IA)
 
 
 @dataclass(frozen=True, slots=True)
@@ -126,7 +125,7 @@ class ServiceFiches:
                 fiche = assembler_fiche(
                     contexte,
                     resultat.redaction,
-                    mode=MODE_FICHE[mode],
+                    mode=mode_fiche(mode),
                     genere_le=maintenant,
                     modele=fournisseur.modele,
                     trace=resultat.trace,

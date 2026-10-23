@@ -13,7 +13,7 @@ import {
   variationClasse,
 } from "../composants.js";
 import { h, remplacer } from "../dom.js";
-import { dateCourte, euros, heure, jours, LIBELLES, nombre, pourcentage, quantite } from "../format.js";
+import { dateCourte, euros, heure, jours, LIBELLES, libelleFournisseur, nombre, pourcentage, quantite } from "../format.js";
 import type { Contexte, Vue } from "../routeur.js";
 import type { AvancementTournee, Fiche, ModeLLM, RetourClients } from "../types-api.js";
 
@@ -40,7 +40,7 @@ function entete(fiche: Fiche, contexte: Contexte, recharger: (mode: ModeLLM | un
       attrs: { "aria-label": "Rédacteur de la fiche", style: "width:auto;max-width:100%" },
       on: { change: (e) => recharger(((e.target as HTMLSelectElement).value || undefined) as ModeLLM | undefined, false) },
     },
-    h("option", { attrs: { value: "" } }, `Rédacteur par défaut (${LIBELLES.modeLLM[contexte.session.mode_par_defaut]})`),
+    h("option", { attrs: { value: "" } }, `Rédacteur par défaut (${contexte.libelleMode(contexte.session.mode_par_defaut)})`),
     contexte.session.modes_disponibles.map((m) =>
       h("option", { attrs: { value: m.mode, selected: m.mode === modeCourant } }, m.libelle),
     ),
@@ -259,7 +259,7 @@ export const vueFiche: Vue = async (cible, parametres, contexte) => {
           fiche.garde_fous.length
             ? repliable(`Corrections automatiques (${fiche.garde_fous.length})`, h("ul", null, fiche.garde_fous.map((g) => h("li", { classe: "petit" }, g.message))))
             : null,
-          fiche.trace ? repliable("Coulisses de l'IA", traceExecution(fiche.trace)) : null,
+          fiche.trace ? repliable("Coulisses de l'IA", traceExecution(fiche.trace, libelleFournisseur(fiche.trace.fournisseur, contexte.libelleMode))) : null,
           repliable("Version texte", h("pre", { classe: "code" }, fiche.texte)),
         ),
       ),

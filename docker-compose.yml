@@ -56,10 +56,40 @@ services:
       - "8100"
     networks: [interne]
 
+  # Facultatif : service d'IA compatible OpenAI simulé (rejeu des rédactions de démonstration),
+  # pour éprouver le branchement d'un fournisseur sans clé. Même profil que le simulateur du datahub ;
+  # dans .env : LLM_COMPATIBLE_BASE_URL=http://ia-simulateur:8200/v1, LLM_COMPATIBLE_MODEL=cassettes,
+  #   LLM_COMPATIBLE_NOM=Simulateur OpenAI (et LLM_MODE=compatible pour en faire le rédacteur par défaut)
+  ia-simulateur:
+    image: copilote-televente:latest
+    profiles: [simulateur]
+    restart: unless-stopped
+    command: python -m copilote.agent.llm.simulateur_openai --hote 0.0.0.0 --port 8200 --latence-ms 300
+    healthcheck:
+      disable: true
+    expose:
+      - "8200"
+    networks: [interne]
+
+  # Facultatif : modèle d'IA local (Ollama), pour que les données ne quittent pas le serveur.
+  # Activation : `docker compose --profile ollama up -d`, puis `docker compose exec ollama ollama pull <modèle>`,
+  # avec dans .env : LLM_COMPATIBLE_BASE_URL=http://ollama:11434/v1, LLM_COMPATIBLE_MODEL=<modèle>,
+  # LLM_COMPATIBLE_NOM=Ollama. Sans carte graphique, prévoir un petit modèle et des fiches lentes.
+  ollama:
+    image: ollama/ollama
+    profiles: [ollama]
+    restart: unless-stopped
+    volumes:
+      - modeles:/root/.ollama            # modèles téléchargés
+    expose:
+      - "11434"
+    networks: [interne]
+
 volumes:
   donnees:
   caddy_donnees:
   caddy_config:
+  modeles:
 
 networks:
   interne:
