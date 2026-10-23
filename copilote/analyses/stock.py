@@ -184,9 +184,7 @@ def situations_stock(ref: Referentiel) -> tuple[SituationStock, ...]:
 def nb_clients_similaires_acheteurs(ref: Referentiel, client_id: str, code: str) -> int:
     """Nombre de clients du même type ayant acheté le produit au moins `achats_min_adoption` fois."""
     achats = ref.achats_par_produit_et_client.get(code, {})
-    return sum(
-        1 for c in ref.clients_similaires(client_id) if achats.get(c.id, 0) >= ref.regles.achats_min_adoption
-    )
+    return sum(1 for c in ref.clients_similaires(client_id) if achats.get(c.id, 0) >= ref.regles.achats_min_adoption)
 
 
 def evaluer_pertinence(ref: Referentiel, client_id: str, code: str) -> tuple[Pertinence, str]:
@@ -211,9 +209,7 @@ def analyser_stock_client(ref: Referentiel, client_id: str, limite: int = 6) -> 
         pertinence, raison = evaluer_pertinence(ref, client_id, situation.code)
         if pertinence is Pertinence.AUCUNE:
             continue
-        propositions.append(
-            PropositionStock(**situation.model_dump(), pertinence=pertinence, raison_pertinence=raison)
-        )
+        propositions.append(PropositionStock(**situation.model_dump(), pertinence=pertinence, raison_pertinence=raison))
     propositions.sort(key=lambda p: (-p.pertinence, not p.urgent, p.jours_avant_dlc, p.code))
     return StockAEcouler(
         client_id=client_id,

@@ -92,7 +92,9 @@ def _commentaire_manquant(m: ProduitManquant) -> str:
 
 def argument_stock(s: PropositionStock) -> str:
     if MotifEcoulement.DLC_COURTE in s.motifs:
-        return f"Lot à DLC du {fmt.date_longue(s.dlc)} (J+{s.jours_avant_dlc}) : à proposer pour une utilisation rapide."
+        return (
+            f"Lot à DLC du {fmt.date_longue(s.dlc)} (J+{s.jours_avant_dlc}) : à proposer pour une utilisation rapide."
+        )
     return "Stock important sur ce produit : remise pour accélérer l'écoulement."
 
 

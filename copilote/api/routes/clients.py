@@ -24,7 +24,7 @@ RegenererQuery = Annotated[bool, Query(description="Ignorer le cache et régén�
 def lister_clients(
     app: ApplicationDep,
     q: Annotated[str | None, Query(description="Recherche dans le nom, la ville, le contact")] = None,
-    type: Annotated[str | None, Query(description="Type d'établissement")] = None,  # noqa: A002
+    type: Annotated[str | None, Query(description="Type d'établissement")] = None,
     televendeur: str | None = None,
 ) -> list[Client]:
     clients = sorted(app.referentiels.obtenir().clients.values(), key=lambda c: c.nom)

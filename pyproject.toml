@@ -60,7 +60,7 @@ ban-relative-imports = "parents"
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["PLR2004", "N802", "PLR0913"]
-"scripts/*" = ["T201"]
+"scripts/*" = ["T201", "PLR0911"]  # vers_ts : un aiguillage par type JSON
 
 [tool.coverage.run]
 source = ["copilote"]

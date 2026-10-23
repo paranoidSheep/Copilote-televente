@@ -54,9 +54,7 @@ class ReglesMetier:
     part_duree_vie_dlc_courte: float = 0.30  # frais : 30 % de la durée de vie…
     dlc_courte_frais_min_jours: int = 2  # … bornée entre 2…
     dlc_courte_frais_max_jours: int = 5  # … et 5 jours
-    seuil_surstock_jours: dict[Famille, int] = field(
-        default_factory=lambda: {Famille.FRAIS: 14, Famille.SURGELE: 90}
-    )
+    seuil_surstock_jours: dict[Famille, int] = field(default_factory=lambda: {Famille.FRAIS: 14, Famille.SURGELE: 90})
     remise_max_pct: int = 30
     remises_dlc_courte_frais: dict[int, int] = field(default_factory=lambda: {1: 30, 2: 25, 3: 20})
     remise_dlc_courte_frais_defaut: int = 15

@@ -125,9 +125,7 @@ def evaluer_priorite(
         ajouter("baisse", f"Activité en baisse ({habitudes.tendance_ca_pct} %)", poids.baisse_activite)
 
     score = min(100, sum(r.points for r in raisons))
-    deja_appele = any(
-        cr.client_id == client_id and cr.cree_le.date() == aujourd_hui for cr in comptes_rendus
-    )
+    deja_appele = any(cr.client_id == client_id and cr.cree_le.date() == aujourd_hui for cr in comptes_rendus)
     niveau = (
         NiveauPriorite.HAUTE
         if score >= poids.seuil_haute

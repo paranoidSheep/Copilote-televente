@@ -198,9 +198,20 @@ RYTHMES = {
 
 # Quantité de base par unité (pour un client « moyen » et une livraison)
 QUANTITE_BASE: dict[str, int] = {
-    "kg": 6, "plaque": 4, "seau": 2, "brique": 12, "plateau": 6, "sachet": 4,
-    "pot": 4, "boîte": 4, "sac": 3, "filet": 2, "carton": 2, "barquette": 3,
-    "bac": 2, "pièce": 4,
+    "kg": 6,
+    "plaque": 4,
+    "seau": 2,
+    "brique": 12,
+    "plateau": 6,
+    "sachet": 4,
+    "pot": 4,
+    "boîte": 4,
+    "sac": 3,
+    "filet": 2,
+    "carton": 2,
+    "barquette": 3,
+    "bac": 2,
+    "pièce": 4,
 }
 
 

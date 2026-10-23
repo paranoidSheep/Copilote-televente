@@ -7,6 +7,7 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from datetime import date, timedelta
 from enum import StrEnum
+from itertools import pairwise
 from statistics import median
 
 from copilote.domaine import Commande
@@ -62,7 +63,7 @@ def intervalle_median(dates: Sequence[date]) -> float | None:
     """
     if len(dates) < 2:
         return None
-    return float(median((b - a).days for a, b in zip(dates, dates[1:], strict=False)))
+    return float(median((b - a).days for a, b in pairwise(dates)))
 
 
 def recurrences(commandes: Sequence[Commande]) -> dict[str, Recurrence]:

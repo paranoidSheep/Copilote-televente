@@ -41,11 +41,15 @@ def apercu(contexte: ContexteClient) -> str:
         f"prochain {h.prochain_jour_habituel}, panier {h.panier_moyen_ht} €, tendance {h.tendance_ca_pct} %, "
         f"dernière il y a {h.jours_depuis_derniere_commande} j (intervalle {h.intervalle_median_jours})",
         "Récurrents : "
-        + "; ".join(f"{p.code} {p.libelle} {p.frequence_pct}% q{fmt.nombre(p.quantite_habituelle)}" for p in h.produits_recurrents),
+        + "; ".join(
+            f"{p.code} {p.libelle} {p.frequence_pct}% q{fmt.nombre(p.quantite_habituelle)}"
+            for p in h.produits_recurrents
+        ),
         "Catégories : " + ", ".join(f"{p.categorie} {p.part_pct}%" for p in h.repartition_categories[:5]),
         "MANQUANTS :",
         *(
-            f"  {m.code} {m.libelle} [{m.statut}] rythme {m.rythme_habituel_jours} j, depuis {m.jours_depuis_derniere_commande} j, "
+            f"  {m.code} {m.libelle} [{m.statut}] rythme {m.rythme_habituel_jours} j, "
+            f"depuis {m.jours_depuis_derniere_commande} j, "
             f"q{fmt.nombre(m.quantite_habituelle)} {m.unite}, freq {m.frequence_pct}%"
             for m in contexte.manquants.produits
         ),

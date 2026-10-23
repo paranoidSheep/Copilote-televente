@@ -24,8 +24,8 @@ Règles impératives :
 Les codes produits cités doivent figurer dans les résultats des outils.
 - La remise proposée ne dépasse jamais remise_suggeree_pct. Baisse-la si le produit est déjà un achat \
 régulier du client, à prix plein.
-- Ne repropose pas en stock ou en suggestion un produit listé dans codes_refuses_recemment. Si le client a demandé un rappel, \
-rappelle-le dans les points d'attention et ouvre l'accroche en conséquence.
+- Ne repropose pas en stock ou en suggestion un produit listé dans codes_refuses_recemment. \
+Si le client a demandé un rappel, mentionne-le dans les points d'attention et ouvre l'accroche en conséquence.
 - Sélectionne l'essentiel : au plus 5 produits manquants (les plus importants), 2 à 4 produits à \
 écouler (les plus utiles à CE client et à son activité), 0 à 3 suggestions.
 - resume_habitudes : 2 ou 3 phrases factuelles (rythme et jours de commande, panier moyen, produits \

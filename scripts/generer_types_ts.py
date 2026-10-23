@@ -67,8 +67,7 @@ def objet_ts(schema: Schema) -> str:
         requis = schema.get("required", [])
         requis = requis if isinstance(requis, list) else []
         lignes = [
-            f"  {nom}{'' if nom in requis else '?'}: {vers_ts(sous_schema)};"
-            for nom, sous_schema in proprietes.items()
+            f"  {nom}{'' if nom in requis else '?'}: {vers_ts(sous_schema)};" for nom, sous_schema in proprietes.items()
         ]
         return "{\n" + "\n".join(lignes) + "\n}"
     valeurs = schema.get("additionalProperties")

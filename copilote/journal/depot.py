@@ -105,7 +105,8 @@ class DepotSQLite(DepotJournal):
         lignes = json.dumps([l.model_dump(mode="json") for l in compte_rendu.lignes], ensure_ascii=False)
         with self._connexion() as cnx:
             curseur = cnx.execute(
-                "INSERT INTO comptes_rendus (client_id, televendeur, issue, notes, rappel_le, mode_fiche, lignes, cree_le)"
+                "INSERT INTO comptes_rendus"
+                " (client_id, televendeur, issue, notes, rappel_le, mode_fiche, lignes, cree_le)"
                 " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     compte_rendu.client_id,

@@ -5,6 +5,7 @@ Principe : l'IA rédige, les analyses font foi.
 - une remise supérieure à la remise suggérée est ramenée à ce maximum ;
 - une offre (stock, suggestion) refusée récemment par le client n'est pas reproposée ;
 - si ces corrections vident la sélection de stock, elle est complétée depuis les analyses ;
+- un rappel promis au client figure toujours dans les points d'attention ;
 - prix, DLC, quantités et indicateurs viennent exclusivement des analyses.
 Chaque correction est consignée dans `Fiche.garde_fous`, pour la transparence.
 """
@@ -60,6 +61,7 @@ class _Assembleur:
         self,
         rubrique: str,
         choix_ia: Sequence[R],
+        *,
         references: Mapping[str, Ref],
         maximum: int,
         construire: Callable[[R, Ref], Sortie],
@@ -113,23 +115,36 @@ class _Assembleur:
         if len(retenus) >= minimum:
             return []
         deja = {s.code for s in retenus}
-        candidats = [
-            p for p in self.contexte.stock.produits if p.code not in deja and p.code not in self.refuses
-        ][: minimum - len(retenus)]
+        candidats = [p for p in self.contexte.stock.produits if p.code not in deja and p.code not in self.refuses][
+            : minimum - len(retenus)
+        ]
         if candidats:
             self.garde_fous.append(
-                f"Stock : {fmt.pluriel(len(candidats), 'produit')} ajouté(s) depuis les analyses pour compléter la sélection"
+                f"Stock : {fmt.pluriel(len(candidats), 'produit')} ajouté(s) depuis les analyses "
+                "pour compléter la sélection"
             )
         return [
             self.stock(RedactionStock(code=p.code, remise_pct=p.remise_suggeree_pct, argument=argument_stock(p)), p)
             for p in candidats
         ]
 
+    def points_attention(self, proposes: Sequence[str]) -> list[str]:
+        """Points d'attention de l'IA, complétés des faits que la fiche ne doit jamais omettre."""
+        points = [p.strip() for p in proposes if p.strip()][:MAX_POINTS_ATTENTION]
+        rappel = self.contexte.appels.rappel_prevu
+        if rappel is not None and not any("rappel" in p.lower() for p in points):
+            points.insert(0, f"Le client a demandé à être rappelé le {fmt.date_longue(rappel)}.")
+            self.garde_fous.append("Points d'attention : rappel promis ajouté")
+        return points
+
     def suggestion(self, choix: RedactionSuggestion, ref: SuggestionCroisee) -> SuggestionFiche:
         return SuggestionFiche(**ref.model_dump(), argument=choix.argument.strip())
 
     def accroches(
-        self, proposees: Sequence[str], manquants: list[ManquantFiche], stock: list[StockFiche],
+        self,
+        proposees: Sequence[str],
+        manquants: list[ManquantFiche],
+        stock: list[StockFiche],
         suggestions: list[SuggestionFiche],
     ) -> list[str]:
         accroches = [a.strip() for a in proposees if a.strip()]
@@ -149,6 +164,7 @@ class _Assembleur:
 def assembler_fiche(
     contexte: ContexteClient,
     redaction: Redaction,
+    *,
     mode: ModeFiche,
     genere_le: datetime,
     modele: str | None = None,
@@ -159,21 +175,25 @@ def assembler_fiche(
     manquants = a.selectionner(
         "Produits manquants",
         redaction.produits_manquants,
-        {p.code: p for p in contexte.manquants.produits},
-        MAX_MANQUANTS,
-        a.manquant,
+        references={p.code: p for p in contexte.manquants.produits},
+        maximum=MAX_MANQUANTS,
+        construire=a.manquant,
         exclure_refus=False,  # un produit habituel reste à proposer, même refusé une fois
     )
     stock = a.selectionner(
-        "Stock", redaction.stock_a_ecouler, {p.code: p for p in contexte.stock.produits}, MAX_STOCK, a.stock
+        "Stock",
+        redaction.stock_a_ecouler,
+        references={p.code: p for p in contexte.stock.produits},
+        maximum=MAX_STOCK,
+        construire=a.stock,
     )
     stock += a.completer_stock(stock, len(redaction.stock_a_ecouler))
     suggestions = a.selectionner(
         "Suggestions",
         redaction.suggestions,
-        {p.code: p for p in contexte.suggestions.produits},
-        MAX_SUGGESTIONS,
-        a.suggestion,
+        references={p.code: p for p in contexte.suggestions.produits},
+        maximum=MAX_SUGGESTIONS,
+        construire=a.suggestion,
     )
     fiche = Fiche(
         client=contexte.habitudes.client,
@@ -188,7 +208,7 @@ def assembler_fiche(
         stock_a_ecouler=stock,
         suggestions=suggestions,
         accroches=a.accroches(redaction.accroches, manquants, stock, suggestions),
-        points_attention=[p.strip() for p in redaction.points_attention if p.strip()][:MAX_POINTS_ATTENTION],
+        points_attention=a.points_attention(redaction.points_attention),
         appels_precedents=contexte.appels,
         panier=construire_panier(manquants, stock, suggestions),
         garde_fous=a.garde_fous,

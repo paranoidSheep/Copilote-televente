@@ -121,9 +121,7 @@ class SessionSimulee:
 
     def envoyer(self, message: MessageUtilisateur) -> ReponseLLM:
         self._verifier_message(message)
-        self._contexte_jetons += _jetons(
-            message if isinstance(message, str) else "".join(r.contenu for r in message)
-        )
+        self._contexte_jetons += _jetons(message if isinstance(message, str) else "".join(r.contenu for r in message))
         if self._latence_ms:
             self._dormir(self._latence_ms / 1000)
 
@@ -136,9 +134,7 @@ class SessionSimulee:
             ]
             textes = [tour.texte] if tour.texte else []
         elif self._tour == len(tours):
-            appels = [
-                AppelOutil(id=f"sim_{self._tour}_0", nom=OUTIL_SOUMISSION, arguments=self._cassette.redaction)
-            ]
+            appels = [AppelOutil(id=f"sim_{self._tour}_0", nom=OUTIL_SOUMISSION, arguments=self._cassette.redaction)]
             textes = []
         else:
             return self._reponse(Arret.FIN, ["La fiche a déjà été soumise."], [])

@@ -67,7 +67,9 @@ def executer_outils(
             arguments["code"] = produit
         sortie = boite.executer(AppelOutil(id=f"labo_{nom}", nom=nom, arguments=arguments))
         contenu: JsonValue = sortie.contenu if sortie.est_erreur else json.loads(sortie.contenu)
-        resultats.append(ResultatOutilLabo(nom=nom, arguments=arguments, est_erreur=sortie.est_erreur, resultat=contenu))
+        resultats.append(
+            ResultatOutilLabo(nom=nom, arguments=arguments, est_erreur=sortie.est_erreur, resultat=contenu)
+        )
     return resultats
 
 

@@ -47,7 +47,9 @@ class ServiceJournal:
         self._apres_enregistrement(nouveau.client_id)  # ex. invalider la fiche en cache
         return compte_rendu
 
-    def lister(self, client_id: str | None = None, jours: int | None = None, limite: int | None = None) -> list[CompteRendu]:
+    def lister(
+        self, client_id: str | None = None, jours: int | None = None, limite: int | None = None
+    ) -> list[CompteRendu]:
         depuis = self._depuis(jours)
         return self._depot.lister(client_id=client_id, depuis=depuis, limite=limite)
 

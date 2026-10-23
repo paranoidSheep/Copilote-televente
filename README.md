@@ -1,194 +1,223 @@
 # Copilote télévente
 
-MVP d'un assistant pour les télévendeurs d'un distributeur alimentaire (frais et surgelé).
-Avant un appel, le télévendeur choisit un client. Le copilote prépare alors une **fiche d'appel** en quelques secondes :
+Assistant pour les télévendeurs d'un distributeur alimentaire (frais et surgelé).
+Il s'appuie sur les données de l'ERP, lues en **lecture seule** via le datahub, et aide le télévendeur à chaque étape de sa journée :
 
-- **les habitudes du client** : fréquence et jours de commande, panier moyen, produits récurrents, tendance ;
-- **les produits habituels pas encore commandés** sur la période en cours, avec une alerte quand un produit semble parti chez un concurrent ;
-- **le stock à écouler** (DLC courte ou surstock) qui intéresse ce client, avec une remise suggérée ;
-- **des suggestions** : produits adoptés par des établissements similaires et que ce client n'achète pas encore ;
-- **2 ou 3 phrases d'accroche** prêtes à dire au téléphone.
-
-> Toutes les données de ce dépôt sont **fictives**. Elles sont générées par un script, en attendant l'accès au datahub de l'ERP.
-
----
-
-## Comment ça marche
-
-```
-┌─────────────┐   ┌──────────────────────┐   ┌───────────────────────┐   ┌──────────────┐
-│ Page web    │──▶│ API FastAPI          │──▶│ Agent (Claude)        │──▶│ Outils métier│──▶ Datahub
-│ (mobile)    │   │ /clients, /fiche     │   │ ou mode repli         │   │ déterministes│   (mock | http)
-└─────────────┘   └──────────────────────┘   └───────────────────────┘   └──────────────┘
-```
-
-| Dossier | Rôle |
+| Écran | À quoi il sert |
 |---|---|
-| `datahub/base.py` | Interface abstraite `DataSource` (lecture seule) et objets métier : client, produit, commande, lot |
-| `datahub/mock.py` | Source simulée, lue depuis `datahub/donnees/mock_data.json` |
-| `datahub/http.py` | Squelette du client REST pour le vrai datahub (voir plus bas) |
-| `scripts/generer_donnees_mock.py` | Générateur seedé du jeu de données fictif |
-| `agent/tools.py` | Les 4 outils métier : `historique_client`, `produits_habituels_manquants`, `stock_a_ecouler`, `suggestions_croisees` |
-| `agent/agent.py` | Boucle de *tool use* avec Claude, avec bascule automatique en mode repli |
-| `agent/fiche.py` | Structure de la fiche, assemblage et garde-fous, mode repli, rendu texte |
-| `api/main.py`, `api/static/index.html` | API et page web |
-| `tests/` | Tests pytest |
+| **Appels du jour** | La liste des clients à appeler, triée par priorité. Chaque client a un score sur 100 et ses raisons : rappel promis, jour de commande habituel, retard, produits décrochés, lots à DLC courte, poids du client, tendance. |
+| **Fiche d'appel** | Ce qu'il faut savoir avant de décrocher : habitudes, produits habituels non commandés, stock à écouler avec la remise suggérée, suggestions croisées et 2 ou 3 phrases d'accroche. Elle est rédigée par l'IA. |
+| **Compte-rendu** | Après l'appel, le panier proposé ligne par ligne (accepté / refusé), l'issue et un rappel éventuel. Le copilote produit alors le **bon à saisir dans l'ERP**. |
+| **Vue 360** | Le chiffre d'affaires mensuel, la répartition des achats, les produits récurrents et l'historique des appels d'un client. |
+| **Stock** | Le plan d'écoulement : pour chaque lot à DLC courte ou en surstock, les clients à qui le proposer et la part du lot qu'ils pourraient absorber. |
+| **Suivi** | Les taux d'acceptation par type de proposition, le CA généré, les appels transformés en commande et les résultats par télévendeur. |
+| **Labo** | Pour l'équipe projet : ce que l'IA voit (prompt, outils et leurs schémas, résultats bruts) et la comparaison des rédacteurs côte à côte. |
 
-### Le partage des rôles entre l'IA et le code
+> Toutes les données du dépôt sont **fictives** : 30 clients, 80 produits, 6 mois de commandes et des lots avec DLC, générés par un script avec une graine fixe.
 
-Les **chiffres viennent du code, les mots viennent de l'IA**.
+## Démarrage rapide
 
-1. Les outils métier font tous les calculs : rythmes d'achat, retards, rotation du stock, remises. Ce code est classique, déterministe et testé.
-2. Claude (`claude-sonnet-5-5`) appelle ces outils, puis rédige la fiche. Il choisit ce qui compte pour ce client, formule les arguments et écrit les accroches. Il rend sa rédaction en JSON structuré via l'outil `soumettre_fiche`.
-3. La fiche finale est assemblée par le code, qui applique des **garde-fous** :
-   - tout produit cité par l'IA mais absent des résultats des outils est écarté ;
-   - une remise supérieure à la remise suggérée est ramenée à ce plafond ;
-   - prix, DLC, quantités et indicateurs proviennent uniquement des outils.
-4. La fiche est renvoyée en JSON structuré et en texte (à copier ou imprimer).
-
-**Mode repli.** Sans clé `ANTHROPIC_API_KEY`, ou si l'IA est indisponible (réseau, quota, refus, réponse invalide), la fiche est rédigée par des gabarits à partir des mêmes outils. La démo fonctionne donc toujours. La fiche indique clairement son mode : « Rédigée par IA » ou « Mode repli ».
-
-### Règles métier (dans `agent/tools.py`)
-
-| Règle | Valeur |
-|---|---|
-| Période analysée | 6 derniers mois |
-| Produit « habituel » | Présent dans au moins 30 % des commandes et commandé au moins 3 fois |
-| Produit « manquant » | Pas commandé depuis plus de 1,5 fois son rythme habituel (minimum 7 jours). La « période en cours » est donc propre à chaque produit et à chaque client. |
-| Produit « décroché » | Pas commandé depuis plus de 3 fois son rythme habituel : probable achat chez un concurrent |
-| DLC courte | Frais : 30 % de la durée de vie, entre 2 et 5 jours. Surgelé : 30 jours. Un lot qui expire le jour même est exclu (il ne peut plus être livré). |
-| Surstock | Plus de 14 jours de ventes en stock pour le frais, plus de 90 jours pour le surgelé (rotation calculée sur 4 semaines) |
-| Remise suggérée | DLC courte frais : 30 % à J+1, 25 % à J+2, 20 % à J+3, 15 % au-delà. Surgelé à DLC proche : 15 à 20 %. Surstock : 10 à 15 %. **Plafond : 30 %.** |
-| Tendance | Chiffre d'affaires moyen par semaine d'activité, 12 dernières semaines comparées aux 12 précédentes. Les fermetures, comme les vacances scolaires, ne faussent donc pas le calcul. |
-| Pertinence du stock pour un client | Produit acheté régulièrement > déjà acheté > acheté par au moins 2 clients du même type |
-
-Tous ces seuils sont des constantes regroupées en tête de `agent/tools.py`, faciles à ajuster avec les équipes commerciales.
-
----
-
-## Lancement
-
-Prérequis : Python 3.12 ou plus.
+Prérequis : Python 3.12 ou plus. Node.js n'est utile que pour modifier l'interface.
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-
-# Démarrer l'application (mode repli si aucune clé n'est définie)
-uvicorn api.main:app --reload
-# puis ouvrir http://localhost:8000
+python -m scripts.peupler_journal_demo --vider   # facultatif : ~45 appels fictifs pour la démo
+python -m copilote                                # http://localhost:8000
 ```
 
-Pour activer l'IA :
+**Sans clé d'API, l'IA est simulée.** Le copilote rejoue des rédactions produites par Claude (voir plus bas), avec exactement le même protocole que l'IA réelle. Pour utiliser Claude :
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-...
-# facultatif : export ANTHROPIC_MODEL=claude-sonnet-5-5
-uvicorn api.main:app --reload
+python -m copilote
 ```
 
-### Endpoints
+Les commandes courantes sont regroupées dans le `Makefile` (`make aide`).
+
+## Comment l'IA est utilisée
+
+**Les chiffres viennent du code, les mots viennent de l'IA.**
+
+```mermaid
+flowchart LR
+    A[Datahub ERP<br/>lecture seule] --> B[Referentiel<br/>instantané indexé]
+    B --> C[Analyses<br/>calculs purs, testés]
+    J[(Journal local<br/>comptes-rendus)] --> C
+    C -->|outils| D[Agent IA<br/>Claude · simulé]
+    D -->|rédaction JSON| E[Assemblage<br/>garde-fous]
+    C --> E
+    C -->|repli sans IA| E
+    E --> F[Fiche d'appel]
+```
+
+1. Les **analyses** font tous les calculs : rythmes d'achat, retards, rotation du stock, remises, pertinence et priorités. C'est du code déterministe et entièrement testé.
+2. L'**agent** donne ces analyses à Claude sous forme d'outils (`historique_client`, `produits_habituels_manquants`, `stock_a_ecouler`, `suggestions_croisees`, `historique_appels`, `details_produit`). Claude les appelle, puis soumet sa rédaction via l'outil `soumettre_fiche`, dont le schéma JSON est strict.
+3. L'**assemblage** construit la fiche finale et applique des **garde-fous**. Chaque correction est consignée et visible dans la fiche (« Corrections automatiques ») :
+   - un produit cité par l'IA mais absent des analyses est écarté ;
+   - une remise supérieure à la remise suggérée est ramenée à ce plafond ;
+   - une offre (stock ou suggestion) refusée par le client dans les 14 derniers jours n'est pas reproposée ;
+   - si ces corrections vident la sélection, elle est complétée à partir des analyses.
+4. Les outils sont **verrouillés sur le client** de la fiche : l'IA ne peut pas lire les données d'un autre client.
+5. La **trace** de chaque rédaction est conservée et affichée dans « Coulisses de l'IA » : appels au modèle, appels d'outils, durées et jetons.
+
+### Trois rédacteurs interchangeables
+
+Le mode se choisit avec `LLM_MODE`. La fiche indique toujours qui l'a rédigée.
+
+| Mode | Rédacteur | Quand |
+|---|---|---|
+| `anthropic` | Claude (`claude-sonnet-5-5`) via le SDK officiel | Production, avec `ANTHROPIC_API_KEY` |
+| `simule` | IA simulée : rejeu de conversations enregistrées | Démo et tests, sans clé ni réseau |
+| `repli` | Gabarits, sans IA | Secours automatique si l'IA échoue (réseau, quota, refus, réponse invalide) |
+| `auto` (par défaut) | `anthropic` si une clé est présente, sinon `simule` | — |
+
+**L'IA simulée** (`copilote/agent/llm/cassettes/`) contient une conversation par client : appels d'outils successifs, éventuel approfondissement avec `details_produit`, puis rédaction. Ces 30 rédactions ont été **écrites par Claude** à partir des résultats réels des outils sur le jeu de données fictif.
+
+Le fournisseur simulé suit le même protocole que l'API. Il exige notamment le résultat de chaque appel d'outil. Toute la chaîne (boucle, garde-fous, trace, interface) se démontre et se teste donc sans clé. La commande `python -m scripts.cassettes verifier`, exécutée aussi en CI, contrôle que chaque cassette reste cohérente avec les données : produits existants et remises dans les plafonds.
+
+**L'adaptateur Claude** (`copilote/agent/llm/claude.py`) est configuré ainsi :
+- effort `medium` ;
+- outils en `strict: true` ;
+- historique complet renvoyé à chaque tour (blocs de réflexion compris) ;
+- bascule serveur en cas de refus (`fallbacks: "default"`), désactivable avec `ParametresClaude(bascule_refus=False)`.
+
+Il est testé à travers le vrai SDK, avec un transport HTTP simulé : le corps des requêtes et la traduction des erreurs (429, 401, 5xx) sont vérifiés.
+
+## Architecture
+
+Le code est organisé en couches : chaque couche ne dépend que des couches au-dessus d'elle dans ce tableau. Le détail est dans [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
+| Paquet | Rôle |
+|---|---|
+| `copilote/domaine` | Objets métier immuables (client, produit, commande, lot) et erreurs |
+| `copilote/datahub` | Interface `DataSource` en lecture seule, source simulée, client REST du vrai datahub et cache |
+| `copilote/journal` | Comptes-rendus d'appels : modèles, stockage SQLite **local**, statistiques |
+| `copilote/analyses` | Calculs métier purs sur un `Referentiel` (instantané indexé). Toutes les règles sont dans `regles.py`. |
+| `copilote/fiche` | Modèle de la fiche, assemblage avec garde-fous, repli sans IA, panier proposé, rendu texte |
+| `copilote/agent` | Outils exposés au LLM, boucle de rédaction, trace, fournisseurs (`llm/`) |
+| `copilote/services` | Orchestration : fiches (choix du rédacteur, repli, cache), journal, pilotage |
+| `copilote/application.py` | Assemblage des composants à partir de la configuration (seul endroit qui choisit les implémentations) |
+| `copilote/api` | FastAPI : routeurs par domaine, traduction des erreurs, interface web |
+| `frontend/` | Interface en TypeScript strict, sans framework ni bundler, compilée dans `copilote/api/static/js` |
+
+**Typage fort de bout en bout.**
+- Python est vérifié par `mypy --strict`, et tous les modèles sont des modèles pydantic immuables.
+- Le frontend est en TypeScript strict (`noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`…).
+- Les types TypeScript de l'API sont **générés à partir du schéma OpenAPI** (`python -m scripts.generer_types_ts`). Un changement de modèle côté serveur casse donc la compilation du frontend au lieu de passer inaperçu. La CI vérifie que ces types sont à jour.
+
+### Règles métier (`copilote/analyses/regles.py`)
+
+| Règle | Valeur par défaut |
+|---|---|
+| Produit « habituel » | Présent dans au moins 30 % des commandes et commandé au moins 3 fois sur 6 mois |
+| Produit « manquant » | Non commandé depuis plus de 1,5 fois son rythme habituel (minimum 7 jours). Au-delà de 3 fois ce rythme, il est « décroché » (probable concurrent). |
+| DLC courte | Frais : 30 % de la durée de vie, entre 2 et 5 jours. Surgelé : 30 jours. Un lot qui expire le jour même est exclu. |
+| Surstock | Plus de 14 jours de ventes en stock pour le frais, plus de 90 jours pour le surgelé (rotation calculée sur 4 semaines) |
+| Remise suggérée | DLC courte frais : 30 % à J+1, 25 % à J+2, 20 % à J+3, 15 % au-delà. Surgelé : 15 à 20 %. Surstock : 10 à 15 %. **Plafond : 30 %.** |
+| Tendance | CA moyen par semaine d'activité, 12 dernières semaines comparées aux 12 précédentes (les vacances ne faussent pas le calcul) |
+| Mémoire des refus | Une offre refusée n'est pas reproposée pendant 14 jours |
+| Priorité d'appel | Points cumulés, plafonnés à 100 : rappel promis 60, jour de commande 30, retard 20, décrochages, manquants, lots urgents, gros client, baisse d'activité |
+
+## API
+
+La documentation interactive est disponible sur `/docs`. Endpoints principaux :
 
 | Méthode | Chemin | Description |
 |---|---|---|
-| GET | `/` | Page web : liste des clients, puis fiche d'appel |
-| GET | `/clients` | Liste des clients (JSON) |
-| GET | `/clients/{id}/fiche` | Fiche d'appel (JSON, avec sa version `texte`). Elle est mise en cache pour la journée ; `?regenerer=true` force une nouvelle génération. |
-| GET | `/sante` | Source de données active, date de référence, mode IA ou repli |
-| GET | `/docs` | Documentation interactive de l'API (générée par FastAPI) |
+| GET | `/clients` | Clients (filtres `q`, `type`, `televendeur`) |
+| GET | `/clients/{id}` | Vue 360 |
+| GET | `/clients/{id}/fiche` | Fiche d'appel (`mode=anthropic\|simule\|repli`, `regenerer=true`). Version texte : `/fiche.txt`. |
+| GET | `/clients/{id}/produits/{code}` | Détail d'un produit pour ce client |
+| GET | `/appels/file` | File d'appels du jour (`televendeur`) |
+| POST | `/comptes-rendus` | Enregistre un compte-rendu dans le journal **local** et renvoie le bon à saisir dans l'ERP |
+| GET | `/comptes-rendus`, `/comptes-rendus/{id}/saisie-erp` | Historique et bon de saisie |
+| GET | `/statistiques` | Indicateurs d'efficacité (`jours`) |
+| GET | `/stock/plan-ecoulement` | Plan d'écoulement du stock |
+| GET | `/labo/agent`, `/labo/clients/{id}/outils`, `/labo/clients/{id}/comparaison` | Inspection de l'agent |
+| GET | `/sante` | Source de données, date, rédacteurs disponibles, télévendeurs |
 
-### Variables d'environnement
+## Configuration
 
 | Variable | Défaut | Rôle |
 |---|---|---|
 | `DATASOURCE` | `mock` | `mock` (données simulées) ou `http` (vrai datahub) |
-| `ANTHROPIC_API_KEY` | (vide) | Clé d'API Anthropic. Si elle est absente, l'application tourne en mode repli. |
-| `ANTHROPIC_MODEL` | `claude-sonnet-5-5` | Modèle Claude utilisé |
-| `MOCK_DATA_PATH` | `datahub/donnees/mock_data.json` | Autre fichier de données simulées |
+| `LLM_MODE` | `auto` | `auto`, `anthropic`, `simule` ou `repli` |
+| `ANTHROPIC_API_KEY` | (vide) | Clé d'API Anthropic |
+| `ANTHROPIC_MODEL` | `claude-sonnet-5-5` | Modèle Claude |
+| `LLM_LATENCE_SIMULEE_MS` | `0` | Latence ajoutée à l'IA simulée (démo réaliste) |
+| `JOURNAL_PATH` | `var/journal.sqlite3` | Journal local des comptes-rendus |
+| `MOCK_DATA_PATH` | jeu fourni | Autre fichier de données simulées |
 | `DATAHUB_URL`, `DATAHUB_TOKEN`, `DATAHUB_TIMEOUT` | (vides), 10 s | Accès au vrai datahub |
+| `CACHE_SECONDES` | `300` | Durée de vie de l'instantané des données (et du cache du datahub) |
 
-Un modèle de configuration est fourni dans `.env.example`.
-
-### Tests
-
-```bash
-pytest
-```
-
-Les tests couvrent les outils métier sur des cas construits à la main, le jeu de données simulé, le client HTTP (avec un transport simulé, sans réseau), l'agent (avec un Claude simulé : boucle d'outils, relance, erreurs, bascule en repli) et l'API. Ils n'appellent jamais l'API Anthropic.
-
-### Données simulées
+## Qualité
 
 ```bash
-python scripts/generer_donnees_mock.py   # régénère datahub/donnees/mock_data.json (graine fixe)
+make verifier   # ruff, mypy --strict, 128 tests (97 % de couverture), cassettes, types TypeScript
+make front      # régénère les types puis compile le frontend (nécessite Node.js)
 ```
 
-Le jeu de données contient 30 clients répartis en 9 types (restaurants, brasseries, pizzerias, cantines scolaires, EHPAD, boulangeries, traiteurs, hôtels, snacks), 80 produits (45 frais, 35 surgelés), environ 1 300 commandes sur 6 mois et environ 140 lots avec DLC.
+La CI GitHub Actions (`.github/workflows/ci.yml`) exécute ces contrôles sur chaque pull request. Elle compile aussi le frontend et vérifie que le JavaScript versionné est à jour.
 
-Les habitudes sont construites pour être cohérentes : jours de commande fixes, produits typiques de chaque métier, saisonnalité (glaces l'été, cantines fermées en juillet-août), et des produits « décrochés » chez certains clients. Le stock contient des lots à DLC courte et des surstocks.
+Les tests sont organisés par couche :
 
-La date de référence (« aujourd'hui ») est figée au **23/10/2026** pour que la démo soit reproductible. Un test vérifie que le fichier versionné correspond exactement à la sortie du générateur.
-
----
+| Fichier | Ce qu'il couvre |
+|---|---|
+| `test_datahub.py` | Mock, client HTTP (requêtes GET uniquement), cache, configuration |
+| `test_analyses.py` | Calculs métier sur des cas construits à la main |
+| `test_journal.py` | Stockage SQLite et en mémoire, statistiques |
+| `test_fiche.py` | Garde-fous, repli, panier |
+| `test_agent.py` | Outils, boucle de rédaction, IA simulée, adaptateur Claude via le SDK |
+| `test_services.py` | Choix du rédacteur, cache des fiches, journal |
+| `test_api.py` | Endpoints, codes d'erreur, types TypeScript à jour |
 
 ## Brancher le vrai datahub
 
-Le copilote ne dépend que de l'interface `DataSource` (`datahub/base.py`). Brancher le datahub ne demande **aucune modification** des outils, de l'agent ou de l'API. Il suffit de compléter `datahub/http.py`, où chaque point à confirmer est marqué `TODO(datahub)`.
+Le copilote ne dépend que de l'interface `DataSource` (`copilote/datahub/base.py`). Brancher le datahub, c'est **compléter `copilote/datahub/http.py`**, où chaque point à confirmer est marqué `TODO(datahub)`, puis passer `DATASOURCE=http`. Les analyses, l'agent, l'API et l'interface ne changent pas.
 
 ### 1. Ce que le datahub doit fournir (lecture seule)
 
-| Méthode `DataSource` | Appel supposé dans `http.py` | Données attendues |
+| Méthode `DataSource` | Appel supposé | Données attendues |
 |---|---|---|
-| `get_clients()` | `GET /clients` | id, nom, type d'établissement, ville, contact, téléphone, commercial |
-| `get_client(id)` | `GET /clients/{id}` | idem, pour un client ; 404 si inconnu |
+| `get_clients()` | `GET /clients` | id, nom, type d'établissement, ville, contact, téléphone, télévendeur |
+| `get_client(id)` | `GET /clients/{id}` | idem ; 404 si inconnu |
 | `get_order_history(client_id, depuis)` | `GET /commandes?client_id=…&depuis=AAAA-MM-JJ` | commandes **avec leurs lignes** : produit, quantité, prix unitaire HT |
 | `get_products()` | `GET /produits` | code, libellé, catégorie, famille (frais/surgelé), unité, prix HT, durée de vie |
 | `get_stock()` | `GET /stock/lots` | lots disponibles : produit, quantité, DLC, date de réception, entrepôt |
 
-### 2. Points à implémenter ou à valider avec l'équipe du datahub
+### 2. Points à implémenter ou à valider
 
-1. **Authentification** (`HttpDataSource.__init__`) : le code envoie aujourd'hui `Authorization: Bearer $DATAHUB_TOKEN`. À adapter si le datahub utilise une clé d'API dans un autre en-tête, un certificat client, etc.
+1. **Authentification** : le client envoie aujourd'hui `Authorization: Bearer $DATAHUB_TOKEN`. À adapter si le datahub utilise un autre schéma (en-tête dédié, certificat…).
 2. **Chemins et paramètres** des cinq appels ci-dessus.
-3. **Pagination** (`_get_liste`) : deux formats sont gérés, une liste JSON directe ou `{"items": [...], "next": url}`. À adapter au format réel (offset/limit, curseur…).
-4. **Correspondance des champs** (fonctions `_vers_client`, `_vers_produit`, `_vers_commande`, `_vers_lot`) : renommer les champs ERP vers les objets métier, et traduire les codes ERP en libellés lisibles (type d'établissement, famille de produit). Quelques choix sont à arbitrer :
-   - date de commande ou date de livraison pour l'historique ;
+3. **Pagination** (`_get_liste`) : deux formats sont gérés, une liste JSON directe ou `{"items": [...], "next": url}`, avec un garde-fou de 1 000 pages.
+4. **Correspondance des champs** (`_vers_client`, `_vers_produit`, `_vers_commande`, `_vers_lot`). Quelques choix sont à arbitrer :
+   - date de commande ou date de livraison ;
    - prix tarif ou prix net client ;
-   - DLC ou DDM selon les produits ;
+   - DLC ou DDM ;
    - stock disponible uniquement, hors réservé et hors bloqué qualité.
-5. **Lignes de commande** : si `/commandes` ne renvoie pas les lignes, ajouter un appel par commande, ou mieux, demander un endpoint qui les inclut.
-6. **Volumétrie et performance** : `stock_a_ecouler` et `suggestions_croisees` lisent l'historique de tous les clients sur 4 semaines à 6 mois. Sur de gros volumes, mettre en cache le catalogue et ces historiques (par exemple pendant une heure), ou demander au datahub des agrégats déjà calculés : ventes par produit et par jour, produits achetés par type de client.
-7. **Date de référence** : la source HTTP utilise la date du jour, alors que le mock utilise sa date figée. Rien à faire.
-
-### 3. Mise en service et vérification
+5. **Lignes de commande** : si `/commandes` ne les renvoie pas, prévoir un appel par commande, ou mieux, un endpoint qui les inclut.
+6. **Volumétrie** : en mode `http`, la source est automatiquement placée derrière `SourceEnCache` (`CACHE_SECONDES`). Toutes les analyses d'une même période travaillent sur un seul instantané chargé en mémoire. Si l'historique global sur 6 mois devient trop lourd, on pourra demander au datahub des agrégats déjà calculés.
+7. **Tests** : `tests/test_datahub.py` montre comment valider la correspondance des champs sans réseau (`httpx.MockTransport`). Il est conseillé d'y ajouter un exemple de réponse anonymisé par endpoint.
 
 ```bash
-export DATASOURCE=http
-export DATAHUB_URL=https://datahub.mon-entreprise.local/api/v1
-export DATAHUB_TOKEN=...
-uvicorn api.main:app
-curl localhost:8000/sante          # doit afficher "source_donnees": "http"
-curl localhost:8000/clients        # doit lister les vrais clients
+export DATASOURCE=http DATAHUB_URL=https://datahub.mon-entreprise.local/api/v1 DATAHUB_TOKEN=...
+python -m copilote
+curl localhost:8000/sante   # "source_donnees": "http"
 ```
 
-Les tests de `tests/test_http.py` montrent comment valider la correspondance des champs sans réseau, avec `httpx.MockTransport`. Pour chaque endpoint réel, il est conseillé d'y ajouter un exemple de réponse anonymisé.
+### Règle absolue : rien n'est jamais écrit dans l'ERP
 
-### Règle absolue : lecture seule
+- La seule interface d'accès à l'ERP (`DataSource`) ne contient que des lectures.
+- `HttpDataSource._get` est l'unique point de sortie réseau. Des tests vérifient que seules des requêtes `GET` sont émises et qu'aucune méthode d'écriture n'existe.
+- Les comptes-rendus d'appels sont stockés dans le **journal local du copilote** (SQLite). La commande acceptée est restituée sous forme de **bon à saisir** : c'est le télévendeur qui la saisit dans l'ERP, comme aujourd'hui.
 
-Le copilote **n'écrit jamais** dans le datahub ni dans l'ERP. L'interface `DataSource` ne contient que des méthodes de lecture, et `HttpDataSource._get` est le seul point d'accès au réseau (requêtes `GET` uniquement). Un test vérifie que seules des requêtes `GET` sont émises et qu'aucune méthode d'écriture n'existe. Si un jour le copilote doit préparer une commande, il devra la **proposer** au télévendeur, qui la saisira dans l'ERP comme aujourd'hui.
+## Données de démonstration
 
----
+```bash
+python -m scripts.generer_donnees_mock          # régénère le jeu fictif (identique à chaque fois)
+python -m scripts.peupler_journal_demo --vider  # ~45 comptes-rendus fictifs, dont 2 rappels pour aujourd'hui
+python -m scripts.cassettes apercu C005         # ce que les outils renvoient pour un client
+```
 
-## Notes techniques sur l'IA
-
-- **Modèle** : `claude-sonnet-5-5`, avec un effort `medium`, bon compromis entre qualité et latence pour enchaîner des outils.
-- **Outils** déclarés avec `strict: true`, pour que les arguments respectent toujours le schéma.
-- **Bascule serveur en cas de refus** (`fallbacks: "default"`, bêta `server-side-fallback-2026-07-01`) : si le modèle décline une requête, l'API la rejoue automatiquement sur un autre modèle. Pour la désactiver, retirer ces deux paramètres dans `agent/agent.py`.
-- **Garde-fous de la boucle** : 6 allers-retours au maximum, une relance si Claude répond sans soumettre la fiche, et les erreurs d'outils sont renvoyées à Claude au lieu de faire planter la génération.
-- **Coût** : une fiche représente quelques milliers de jetons en entrée (les résultats des outils). Le cache de l'API évite de régénérer une fiche déjà consultée dans la journée.
-
-## Pistes après le MVP
-
-- Branchement du datahub réel et calibrage des seuils avec les télévendeurs.
-- Remontée du résultat de l'appel (produits acceptés ou refusés) pour mesurer l'efficacité des suggestions.
-- File d'appels du jour triée par priorité : clients en retard, décrochages, stock à écouler.
-- Authentification des utilisateurs et filtrage des clients par télévendeur.
+La date de référence du jeu fictif est figée au **23/10/2026**, pour que la démo soit reproductible. Les comptes-rendus sont horodatés à cette même date.

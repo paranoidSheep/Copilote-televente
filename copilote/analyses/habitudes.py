@@ -5,6 +5,8 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import date
 
+from pydantic import Field
+
 from copilote.domaine import Client
 
 from .base import Resultat
@@ -48,14 +50,14 @@ class HabitudesClient(Resultat):
     jours_depuis_derniere_commande: int | None = None
     intervalle_median_jours: float | None = None
     commandes_par_semaine: float = 0.0
-    jours_habituels: list[JourSemaine] = []
+    jours_habituels: list[JourSemaine] = Field(default_factory=list)
     prochain_jour_habituel: date | None = None
     panier_moyen_ht: float | None = None
     ca_total_ht: float = 0.0
     tendance_ca_pct: int | None = None
-    ca_mensuel: list[CaMensuel] = []
-    repartition_categories: list[PartCategorie] = []
-    produits_recurrents: list[ProduitRecurrent] = []
+    ca_mensuel: list[CaMensuel] = Field(default_factory=list)
+    repartition_categories: list[PartCategorie] = Field(default_factory=list)
+    produits_recurrents: list[ProduitRecurrent] = Field(default_factory=list)
 
 
 def analyser_habitudes(ref: Referentiel, client_id: str) -> HabitudesClient:

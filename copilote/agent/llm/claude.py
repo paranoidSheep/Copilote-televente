@@ -14,7 +14,6 @@ from anthropic.types.beta import (
     BetaToolResultBlockParam,
     BetaToolUseBlock,
 )
-
 from pydantic import JsonValue, TypeAdapter
 
 from .types import (
@@ -147,4 +146,3 @@ def _traduire(reponse: BetaMessage) -> ReponseLLM:
         appels=appels,
         usage=Usage(jetons_entree=reponse.usage.input_tokens, jetons_sortie=reponse.usage.output_tokens),
     )
-

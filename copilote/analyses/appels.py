@@ -10,7 +10,6 @@ from copilote.journal import CompteRendu, Issue, Origine, Reponse
 from .base import Resultat
 from .regles import ReglesMetier
 
-
 OFFRES = frozenset({Origine.STOCK, Origine.SUGGESTION})
 
 

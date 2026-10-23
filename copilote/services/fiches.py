@@ -68,8 +68,12 @@ class ServiceFiches:
 
         def repli(avertissement: str | None, trace: TraceExecution | None = None) -> Fiche:
             return assembler_fiche(
-                contexte, rediger_sans_ia(contexte), ModeFiche.REPLI, maintenant,
-                avertissement=avertissement, trace=trace,
+                contexte,
+                rediger_sans_ia(contexte),
+                mode=ModeFiche.REPLI,
+                genere_le=maintenant,
+                avertissement=avertissement,
+                trace=trace,
             )
 
         fournisseur = self._fournisseurs.get(mode)
@@ -83,8 +87,12 @@ class ServiceFiches:
                     contexte.habitudes.client, ref.date_du_jour, creer_boite_outils(ref, client_id, comptes_rendus)
                 )
                 fiche = assembler_fiche(
-                    contexte, resultat.redaction, MODE_FICHE[mode], maintenant,
-                    modele=fournisseur.modele, trace=resultat.trace,
+                    contexte,
+                    resultat.redaction,
+                    mode=MODE_FICHE[mode],
+                    genere_le=maintenant,
+                    modele=fournisseur.modele,
+                    trace=resultat.trace,
                 )
             except ErreurRedaction as exc:
                 fiche = repli(f"IA indisponible ({exc.raison}) : fiche rédigée sans IA.", exc.trace)
