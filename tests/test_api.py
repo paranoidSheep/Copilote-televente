@@ -9,20 +9,22 @@ from copilote.api import creer_app
 from scripts.generer_types_ts import SORTIE, generer
 
 
-@pytest.fixture
-def api(application) -> TestClient:
-    return TestClient(creer_app(application))
-
-
 def test_page_et_ressources_statiques(api):
     assert "Copilote télévente" in api.get("/").text
     assert api.get("/static/css/app.css").status_code == 200
     assert api.get("/static/js/main.js").status_code == 200
 
 
-def test_sante(api):
-    corps = api.get("/sante").json()
+def test_sante_publique_et_minimale(application):
+    corps = TestClient(creer_app(application)).get("/sante").json()
+    assert corps["statut"] == "ok" and set(corps) == {"statut", "version"}
+
+
+def test_session(api):
+    corps = api.get("/session").json()
+    assert corps["utilisateur"]["identifiant"] == "resp" and corps["authentification"] is True
     assert corps["source_donnees"] == "mock" and corps["mode_par_defaut"] == "simule"
+    assert "utiliser_le_labo" in corps["permissions"]
     assert {m["mode"] for m in corps["modes_disponibles"]} == {"simule", "repli"}
     assert len(corps["televendeurs"]) == 3
 
@@ -62,7 +64,6 @@ def test_ressources_introuvables(api, url):
 def test_cycle_compte_rendu(api):
     nouveau = {
         "client_id": "C010",
-        "televendeur": "Julie Moreau",
         "issue": "commande",
         "mode_fiche": "ia_simulee",
         "lignes": [
@@ -81,6 +82,7 @@ def test_cycle_compte_rendu(api):
     reponse = api.post("/comptes-rendus", json=nouveau)
     assert reponse.status_code == 201
     corps = reponse.json()
+    assert corps["compte_rendu"]["televendeur"] == "Responsable"  # l'utilisateur connecté
     assert "COMMANDE À SAISIR" in corps["texte_saisie_erp"]
     identifiant = corps["compte_rendu"]["id"]
     assert "FR007" in api.get(f"/comptes-rendus/{identifiant}/saisie-erp").text
@@ -89,11 +91,10 @@ def test_cycle_compte_rendu(api):
 
 
 def test_compte_rendu_invalide(api):
-    rappel_sans_date = {"client_id": "C010", "televendeur": "J", "issue": "rappeler"}
+    rappel_sans_date = {"client_id": "C010", "issue": "rappeler"}
     assert api.post("/comptes-rendus", json=rappel_sans_date).status_code == 422
     produit_inconnu = {
         "client_id": "C010",
-        "televendeur": "J",
         "issue": "commande",
         "lignes": [
             {

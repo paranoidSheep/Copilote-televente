@@ -6,7 +6,6 @@ import { api } from "../api.js";
 import { badge, boutonCopier, carte, messageErreur } from "../composants.js";
 import { h, remplacer } from "../dom.js";
 import { euros, LIBELLES } from "../format.js";
-import { preferences } from "../preferences.js";
 import type { Fiche, Issue, LigneCompteRendu_Input, LignePanier, Reponse } from "../types-api.js";
 
 interface EtatLigne {
@@ -46,7 +45,7 @@ function controleReponse(etat: EtatLigne, auChangement: () => void) {
   return groupe;
 }
 
-export function formulaireCompteRendu(fiche: Fiche, apresEnregistrement: () => void): HTMLElement {
+export function formulaireCompteRendu(fiche: Fiche, auteur: string, apresEnregistrement: () => void): HTMLElement {
   const etats: EtatLigne[] = fiche.panier.lignes.map((ligne) => ({ ligne, reponse: "sans_reponse", quantite: ligne.quantite }));
   let issueChoisieManuellement = false;
 
@@ -59,11 +58,6 @@ export function formulaireCompteRendu(fiche: Fiche, apresEnregistrement: () => v
   const champRappel = h("input", { classe: "champ", attrs: { type: "date", min: fiche.date_du_jour } });
   const blocRappel = h("label", { classe: "etiquette masque" }, "Rappeler le", champRappel);
   const notes = h("textarea", { classe: "champ", attrs: { placeholder: "Notes (facultatif)", maxlength: 1000 } });
-  const vendeurs = h(
-    "select",
-    { classe: "champ", attrs: { "aria-label": "Télévendeur" } },
-    h("option", { attrs: { value: "" } }, "— Télévendeur —"),
-  );
   const zoneMessage = h("div");
 
   const mettreAJour = (): void => {
@@ -80,11 +74,6 @@ export function formulaireCompteRendu(fiche: Fiche, apresEnregistrement: () => v
   selectIssue.addEventListener("change", () => {
     issueChoisieManuellement = true;
     mettreAJour();
-  });
-
-  void api.sante().then((sante) => {
-    for (const nom of sante.televendeurs) vendeurs.append(h("option", { attrs: { value: nom } }, nom));
-    vendeurs.value = preferences.televendeur ?? fiche.client.commercial;
   });
 
   const lignes = etats.map((etat) => {
@@ -125,10 +114,6 @@ export function formulaireCompteRendu(fiche: Fiche, apresEnregistrement: () => v
       on: {
         submit: async (evenement) => {
           evenement.preventDefault();
-          if (!vendeurs.value) {
-            remplacer(zoneMessage, messageErreur("Choisissez le télévendeur."));
-            return;
-          }
           const issue = selectIssue.value as Issue;
           const lignesCr: LigneCompteRendu_Input[] = etats
             .filter((e) => e.reponse !== "sans_reponse" || issue === "commande")
@@ -146,14 +131,12 @@ export function formulaireCompteRendu(fiche: Fiche, apresEnregistrement: () => v
           try {
             const resultat = await api.enregistrerCompteRendu({
               client_id: fiche.client.id,
-              televendeur: vendeurs.value,
               issue,
               notes: notes.value.trim(),
               rappel_le: issue === "rappeler" ? champRappel.value || null : null,
               mode_fiche: fiche.mode,
               lignes: lignesCr,
             });
-            preferences.televendeur = vendeurs.value;
             remplacer(
               formulaire,
               h("p", { classe: "message-succes" }, `Compte-rendu enregistré (${LIBELLES.issue[resultat.compte_rendu.issue]}).`),
@@ -182,7 +165,7 @@ export function formulaireCompteRendu(fiche: Fiche, apresEnregistrement: () => v
       "div",
       { classe: "colonnes" },
       h("label", { classe: "etiquette" }, "Issue de l'appel", selectIssue),
-      h("label", { classe: "etiquette" }, "Télévendeur", vendeurs),
+      h("div", { classe: "etiquette" }, "Enregistré au nom de", h("strong", { classe: "nom-auteur" }, auteur)),
     ),
     blocRappel,
     notes,

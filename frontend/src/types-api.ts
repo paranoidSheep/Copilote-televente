@@ -53,12 +53,12 @@ export interface ClientCible {
 /** Compte-rendu enregistré. */
 export interface CompteRendu {
   client_id: string;
-  televendeur: string;
   issue: Issue;
   notes: string;
   rappel_le: string | null;
   mode_fiche: string | null;
   lignes: LigneCompteRendu_Output[];
+  televendeur: string;
   id: number;
   cree_le: string;
 }
@@ -72,6 +72,19 @@ export interface ConfigurationAgent {
   prompt_systeme: string;
   exemple_demande: string;
   outils: DefinitionOutil[];
+}
+
+/** Ce que l'interface doit savoir pour l'utilisateur connecté. */
+export interface ContexteSession {
+  utilisateur: Utilisateur;
+  permissions: Permission[];
+  authentification: boolean;
+  version: string;
+  source_donnees: string;
+  date_du_jour: string;
+  mode_par_defaut: ModeLLM;
+  modes_disponibles: ModeDisponible[];
+  televendeurs: string[];
 }
 
 export interface DefinitionOutil {
@@ -162,6 +175,11 @@ export interface HistoriqueAppels {
   rappel_prevu: string | null;
 }
 
+export interface Identifiants {
+  identifiant: string;
+  mot_de_passe: string;
+}
+
 /** Issue de l'appel. */
 export type Issue = "commande" | "pas_de_besoin" | "rappeler" | "injoignable";
 
@@ -248,17 +266,6 @@ export type MotifEcoulement = "dlc_courte" | "surstock";
 
 export type NiveauPriorite = "haute" | "moyenne" | "basse";
 
-/** Compte-rendu tel que saisi par le télévendeur. */
-export interface NouveauCompteRendu {
-  client_id: string;
-  televendeur: string;
-  issue: Issue;
-  notes?: string;
-  rappel_le?: string | null;
-  mode_fiche?: string | null;
-  lignes?: LigneCompteRendu_Input[];
-}
-
 /** D'où vient la proposition faite au client. */
 export type Origine = "manquant" | "stock" | "suggestion" | "autre";
 
@@ -272,6 +279,8 @@ export interface PartCategorie {
   categorie: string;
   part_pct: number;
 }
+
+export type Permission = "voir_toutes_les_files" | "voir_statistiques_globales" | "utiliser_le_labo" | "diagnostiquer_les_donnees";
 
 /** Intérêt d'un produit pour un client donné (plus c'est haut, plus c'est pertinent). */
 export type Pertinence = 0 | 1 | 2 | 3;
@@ -335,14 +344,22 @@ export interface ResultatOutilLabo {
   resultat: JsonValue;
 }
 
+export type Role = "televendeur" | "responsable" | "admin";
+
+/** Compte-rendu tel que saisi dans l'interface (l'auteur est l'utilisateur connecté). */
+export interface SaisieCompteRendu {
+  client_id: string;
+  issue: Issue;
+  notes?: string;
+  rappel_le?: string | null;
+  mode_fiche?: string | null;
+  lignes?: LigneCompteRendu_Input[];
+}
+
+/** État public du service (sonde de supervision) : ne divulgue aucune donnée métier. */
 export interface Sante {
   statut: string;
   version: string;
-  source_donnees: string;
-  date_du_jour: string;
-  mode_par_defaut: ModeLLM;
-  modes_disponibles: ModeDisponible[];
-  televendeurs: string[];
 }
 
 /** Un produit à écouler, avec son lot prioritaire (DLC la plus proche). */
@@ -451,3 +468,12 @@ export interface TraceExecution {
 }
 
 export type TypeEtape = "appel_llm" | "outil" | "garde_fou";
+
+/** Compte tel qu'exposé à l'application (jamais le hachage du mot de passe). */
+export interface Utilisateur {
+  identifiant: string;
+  nom_affiche: string;
+  role: Role;
+  actif: boolean;
+  cree_le: string;
+}

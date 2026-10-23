@@ -28,8 +28,8 @@ function entete(fiche: Fiche, contexte: Contexte, recharger: (mode: ModeLLM | un
       attrs: { "aria-label": "Rédacteur de la fiche", style: "width:auto" },
       on: { change: (e) => recharger(((e.target as HTMLSelectElement).value || undefined) as ModeLLM | undefined, false) },
     },
-    h("option", { attrs: { value: "" } }, `Rédacteur par défaut (${LIBELLES.modeLLM[contexte.sante.mode_par_defaut]})`),
-    contexte.sante.modes_disponibles.map((m) =>
+    h("option", { attrs: { value: "" } }, `Rédacteur par défaut (${LIBELLES.modeLLM[contexte.session.mode_par_defaut]})`),
+    contexte.session.modes_disponibles.map((m) =>
       h("option", { attrs: { value: m.mode, selected: m.mode === modeCourant } }, m.libelle),
     ),
   );
@@ -229,7 +229,7 @@ export const vueFiche: Vue = async (cible, parametres, contexte) => {
           { classe: "pile" },
           stock(fiche),
           suggestions(fiche),
-          formulaireCompteRendu(fiche, () => undefined),
+          formulaireCompteRendu(fiche, contexte.session.utilisateur.nom_affiche, () => undefined),
           appelsPrecedents(fiche),
           fiche.garde_fous.length
             ? repliable(`Corrections automatiques (${fiche.garde_fous.length})`, h("ul", null, fiche.garde_fous.map((g) => h("li", { classe: "petit" }, g))))

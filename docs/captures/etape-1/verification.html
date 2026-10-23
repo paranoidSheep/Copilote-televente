@@ -1,0 +1,34 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Étape 1 — Prêt pour le VPS</title>
+<style>
+ body { font: 15px/1.45 system-ui, sans-serif; background: #f2f4f3; color: #18211d; margin: 0; padding: 28px; }
+ .carte { background: #fff; border: 1px solid #dde4e1; border-radius: 14px; padding: 18px 20px; margin-bottom: 14px; }
+ h1 { font-size: 1.35rem; margin: 0 0 4px; } h2 { font-size: .8rem; text-transform: uppercase;
+ letter-spacing: .06em; color: #5a6762; margin: 0 0 10px; }
+ .statut { display: inline-block; padding: 4px 10px; border-radius: 8px; font-weight: 700;
+ background: #e3f4ea; color: #1f7a46; }
+ table { width: 100%; border-collapse: collapse; } td, th { padding: 7px 6px; border-bottom: 1px solid #dde4e1;
+ text-align: left; vertical-align: top; } .n { text-align: right; white-space: nowrap; }
+ code { font-size: .82rem; color: #3b4844; } .kpis { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+ .kpi { background: #f2f4f3; border-radius: 10px; padding: 10px 14px; min-width: 130px; }
+ .kpi b { font-size: 1.3rem; display: block; }
+</style></head><body>
+<div class="carte"><h1>Étape 1 — Prêt pour le VPS</h1>
+<div>23/10/2026 19:51 · <span class="statut">Tous les contrôles sont au vert</span></div>
+<div class="kpis"><div class="kpi"><b>164</b>tests</div><div class="kpi"><b>96%</b>couverture</div>
+<div class="kpi"><b>7/7</b>contrôles réussis</div></div></div>
+<div class="carte"><h2>Contrôles</h2><table><tr><td>✅</td><td>Lint (ruff check)</td><td class='n'>0.0 s</td><td><code>All checks passed!</code></td></tr>
+<tr><td>✅</td><td>Formatage (ruff format)</td><td class='n'>0.0 s</td><td><code>92 files already formatted</code></td></tr>
+<tr><td>✅</td><td>Typage strict (mypy --strict)</td><td class='n'>0.9 s</td><td><code>Success: no issues found in 84 source files</code></td></tr>
+<tr><td>✅</td><td>Tests et couverture (pytest)</td><td class='n'>17.3 s</td><td><code>TOTAL                                2898    109    96%</code></td></tr>
+<tr><td>✅</td><td>Cassettes de l&#x27;IA simulée</td><td class='n'>2.4 s</td><td><code>30/30 cassettes valides</code></td></tr>
+<tr><td>✅</td><td>Types TypeScript à jour</td><td class='n'>2.9 s</td><td><code>Types TypeScript à jour.</code></td></tr>
+<tr><td>✅</td><td>Compilation TypeScript stricte</td><td class='n'>1.9 s</td><td><code>(aucune sortie)</code></td></tr></table></div>
+<div class="carte"><h2>Tests par fichier</h2><table><tr><td><code>tests/test_agent.py</code></td><td class='n'>23</td></tr>
+<tr><td><code>tests/test_analyses.py</code></td><td class='n'>42</td></tr>
+<tr><td><code>tests/test_api.py</code></td><td class='n'>16</td></tr>
+<tr><td><code>tests/test_comptes.py</code></td><td class='n'>35</td></tr>
+<tr><td><code>tests/test_datahub.py</code></td><td class='n'>16</td></tr>
+<tr><td><code>tests/test_fiche.py</code></td><td class='n'>9</td></tr>
+<tr><td><code>tests/test_journal.py</code></td><td class='n'>11</td></tr>
+<tr><td><code>tests/test_services.py</code></td><td class='n'>12</td></tr></table></div>
+</body></html>

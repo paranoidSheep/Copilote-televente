@@ -68,18 +68,17 @@ class LigneCompteRendu(BaseModel):
         return round(self.quantite * self.prix_net_ht, 2)
 
 
-class NouveauCompteRendu(BaseModel):
-    """Compte-rendu tel que saisi par le télévendeur."""
+class SaisieCompteRendu(BaseModel):
+    """Compte-rendu tel que saisi dans l'interface (l'auteur est l'utilisateur connecté)."""
 
     model_config = ConfigDict(frozen=True, extra="forbid", json_schema_serialization_defaults_required=True)
 
     client_id: str
-    televendeur: str = Field(min_length=1)
     issue: Issue
-    notes: str = ""
+    notes: str = Field(default="", max_length=2000)
     rappel_le: date | None = None
     mode_fiche: str | None = Field(default=None, description="Mode de la fiche utilisée : ia, ia_simulee, repli")
-    lignes: list[LigneCompteRendu] = []
+    lignes: list[LigneCompteRendu] = Field(default_factory=list, max_length=50)
 
     @model_validator(mode="after")
     def _coherence(self) -> Self:
@@ -92,6 +91,16 @@ class NouveauCompteRendu(BaseModel):
     @property
     def montant_accepte_ht(self) -> float:
         return round(sum(l.montant_ht for l in self.lignes), 2)
+
+    def par(self, televendeur: str) -> NouveauCompteRendu:
+        """Attribue la saisie à son auteur."""
+        return NouveauCompteRendu(**self.model_dump(), televendeur=televendeur)
+
+
+class NouveauCompteRendu(SaisieCompteRendu):
+    """Compte-rendu attribué à son auteur, prêt à être enregistré."""
+
+    televendeur: str = Field(min_length=1)
 
 
 class CompteRendu(NouveauCompteRendu):

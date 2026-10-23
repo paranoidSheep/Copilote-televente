@@ -6,10 +6,13 @@ from collections.abc import Iterable
 from datetime import date, datetime, timedelta
 
 import pytest
+from fastapi.testclient import TestClient
 
 from copilote.analyses import Referentiel
+from copilote.api import creer_app
 from copilote.application import Application, creer_application
-from copilote.config import Config, ModeLLM
+from copilote.comptes import DepotUtilisateursMemoire, Role, Utilisateur, mots_de_passe
+from copilote.config import Config, ConfigSecurite, ModeLLM
 from copilote.datahub import DataSource
 from copilote.datahub.mock import MockDataSource
 from copilote.domaine import Client, ClientIntrouvable, Commande, Famille, LigneCommande, Lot, Produit
@@ -167,9 +170,59 @@ def horloge() -> HorlogeFixe:
     return HorlogeFixe(datetime(2026, 10, 23, 10, 30))
 
 
+MOT_DE_PASSE_TEST = "mot-de-passe-de-test"
+SECRET_TEST = "secret-de-session-pour-les-tests-0123456789"
+
+
+@pytest.fixture(scope="session")
+def hachage_test() -> str:
+    # scrypt est volontairement lent : un seul hachage pour toute la session de tests.
+    return mots_de_passe.hacher(MOT_DE_PASSE_TEST)
+
+
 @pytest.fixture
-def application(mock_source: MockDataSource, horloge: HorlogeFixe) -> Application:
+def depot_utilisateurs(hachage_test: str) -> DepotUtilisateursMemoire:
+    """Un responsable et une télévendeuse (Julie Moreau, présente dans le jeu de données)."""
+    depot = DepotUtilisateursMemoire()
+    cree_le = datetime(2026, 10, 1)
+    depot.creer(
+        Utilisateur(identifiant="resp", nom_affiche="Responsable", role=Role.RESPONSABLE, cree_le=cree_le), hachage_test
+    )
+    depot.creer(
+        Utilisateur(identifiant="julie", nom_affiche="Julie Moreau", role=Role.TELEVENDEUR, cree_le=cree_le),
+        hachage_test,
+    )
+    return depot
+
+
+@pytest.fixture
+def application(
+    mock_source: MockDataSource, horloge: HorlogeFixe, depot_utilisateurs: DepotUtilisateursMemoire
+) -> Application:
     """Application complète sur le mock, journal en mémoire, IA simulée par défaut."""
     return creer_application(
-        Config(mode_llm=ModeLLM.SIMULE), source=mock_source, depot_journal=DepotMemoire(), horloge=horloge
+        Config(mode_llm=ModeLLM.SIMULE, securite=ConfigSecurite(secret_session=SECRET_TEST)),
+        source=mock_source,
+        depot_journal=DepotMemoire(),
+        horloge=horloge,
+        depot_utilisateurs=depot_utilisateurs,
     )
+
+
+def client_connecte(application: Application, identifiant: str) -> TestClient:
+    client = TestClient(creer_app(application))
+    reponse = client.post("/auth/connexion", json={"identifiant": identifiant, "mot_de_passe": MOT_DE_PASSE_TEST})
+    assert reponse.status_code == 200, reponse.text
+    return client
+
+
+@pytest.fixture
+def api(application: Application) -> TestClient:
+    """Client HTTP connecté en tant que responsable."""
+    return client_connecte(application, "resp")
+
+
+@pytest.fixture
+def api_televendeur(application: Application) -> TestClient:
+    """Client HTTP connecté en tant que télévendeuse (Julie Moreau)."""
+    return client_connecte(application, "julie")

@@ -7,7 +7,7 @@ aide:  ## Liste les cibles
 	@grep -E '^[a-z]+:.*##' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-12s %s\n", $$1, $$2}'
 
 installer:  ## Installe les dépendances Python
-	$(PYTHON) -m pip install -r requirements.txt
+	$(PYTHON) -m pip install -r requirements-dev.txt
 
 lancer:  ## Lance le serveur sur http://localhost:8000
 	$(PYTHON) -m copilote --reload

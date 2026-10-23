@@ -1,11 +1,12 @@
 // Routage par fragment d'URL (#/…) : aucune configuration serveur nécessaire.
 
-import type { Sante } from "./types-api.js";
+import type { ContexteSession, Permission } from "./types-api.js";
 
 export interface Contexte {
-  sante: Sante;
-  /** Rafraîchit l'en-tête (ex. après un changement de télévendeur). */
+  session: ContexteSession;
+  /** Navigue vers un chemin de l'application (ex. « /tableau-de-bord?jours=7 »). */
   naviguer: (chemin: string) => void;
+  peut: (permission: Permission) => boolean;
 }
 
 export type Vue = (cible: HTMLElement, parametres: Record<string, string>, contexte: Contexte) => Promise<void>;

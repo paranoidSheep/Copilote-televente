@@ -44,10 +44,12 @@ function tuile(appel: PrioriteAppel) {
   );
 }
 
-export const vueFileAppels: Vue = async (cible) => {
+export const vueFileAppels: Vue = async (cible, _parametres, contexte) => {
   remplacer(cible, chargement("Calcul de la file d'appels…"));
   try {
-    const file = await api.fileAppels(preferences.televendeur ?? undefined);
+    // Le serveur impose sa propre file à un télévendeur ; un responsable choisit dans l'en-tête.
+    const filtre = contexte.peut("voir_toutes_les_files") ? (preferences.televendeur ?? undefined) : undefined;
+    const file = await api.fileAppels(filtre);
     const restants = file.appels.filter((a) => !a.deja_appele_aujourdhui);
     const hautes = restants.filter((a) => a.niveau === "haute").length;
     const appeles = file.appels.length - restants.length;
@@ -55,7 +57,9 @@ export const vueFileAppels: Vue = async (cible) => {
       cible,
       titrePage(
         "Appels du jour",
-        `${dateLongue(file.date_du_jour)} · ${preferences.televendeur ?? "tous les télévendeurs"}`,
+        `${dateLongue(file.date_du_jour)} · ${
+          contexte.peut("voir_toutes_les_files") ? (filtre ?? "tous les télévendeurs") : "vos clients"
+        }`,
       ),
       h(
         "div",

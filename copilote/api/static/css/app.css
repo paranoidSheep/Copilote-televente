@@ -178,7 +178,7 @@ details.carte[open] > summary { margin-bottom: 12px; }
   width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--bordure); background: var(--carte);
 }
 textarea.champ { min-height: 72px; resize: vertical; }
-label.etiquette { display: grid; gap: 4px; font-size: .84rem; color: var(--texte-doux); }
+.etiquette { display: grid; gap: 4px; font-size: .84rem; color: var(--texte-doux); }
 
 .onglets { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin-bottom: 12px; }
 .onglets button, .onglets a {
@@ -308,3 +308,28 @@ pre.code {
 @media (min-width: 900px) { .comparaison { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); } }
 
 .pied { text-align: center; font-size: .78rem; color: var(--texte-doux); margin-top: 18px; }
+
+/* Connexion et utilisateur connecté */
+.page-connexion { min-height: 100vh; display: grid; place-content: center; padding: 24px 16px; max-width: none; }
+.carte.connexion { width: min(400px, calc(100vw - 32px)); padding: 28px 24px; }
+.carte.connexion h1 { font-size: 1.4rem; margin: 6px 0 4px; }
+.carte.connexion .logo {
+  width: 52px; height: 52px; border-radius: 14px; display: grid; place-items: center; font-size: 1.6rem;
+  background: var(--primaire-clair);
+}
+.carte.connexion .formulaire { margin-top: 18px; }
+.carte.connexion .bouton { width: 100%; padding: 12px; }
+.utilisateur { display: grid; text-align: right; line-height: 1.15; }
+.nom-utilisateur { font-weight: 650; font-size: .88rem; white-space: nowrap; }
+.role-utilisateur { font-size: .72rem; opacity: .85; }
+.bouton-entete {
+  background: rgba(255,255,255,.16); border: 0; border-radius: 10px; color: inherit; cursor: pointer;
+  height: 34px; padding: 0 12px; font-size: .82rem; font-weight: 600; flex: none;
+}
+.nom-auteur { color: var(--texte); font-size: .95rem; padding: 10px 0; }
+.bandeau-dev { position: fixed; left: 12px; bottom: calc(var(--nav-hauteur) + 10px); z-index: 30; }
+@media (min-width: 760px) { .bandeau-dev { bottom: 12px; } }
+@media (max-width: 520px) {
+  .utilisateur .role-utilisateur { display: none; }
+  .entete select { max-width: 34vw; }
+}

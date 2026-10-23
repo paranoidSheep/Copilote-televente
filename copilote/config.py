@@ -17,7 +17,7 @@ from copilote.domaine import ErreurConfiguration
 
 RACINE_PROJET = Path(__file__).resolve().parent.parent
 MODELE_ANTHROPIC_PAR_DEFAUT = "claude-sonnet-5-5"
-CHEMIN_JOURNAL_PAR_DEFAUT = RACINE_PROJET / "var" / "journal.sqlite3"
+DOSSIER_DONNEES_PAR_DEFAUT = RACINE_PROJET / "var"
 
 
 class TypeSource(StrEnum):
@@ -42,6 +42,23 @@ class ConfigDatahub:
 
 
 @dataclass(frozen=True, slots=True)
+class ConfigSecurite:
+    authentification: bool = True  # désactivable uniquement pour un poste de développement
+    secret_session: str | None = None  # obligatoire en production (sinon : secret éphémère)
+    cookie_securise: bool = False  # cookie « Secure » : à activer derrière HTTPS
+    duree_session_heures: int = 12
+    documentation_api: bool = True  # /docs et /openapi.json
+
+
+def _booleen(valeur: str) -> bool:
+    if valeur.strip().lower() in {"1", "true", "oui", "on", "yes"}:
+        return True
+    if valeur.strip().lower() in {"0", "false", "non", "off", "no"}:
+        return False
+    raise ValueError(f"valeur booléenne invalide : {valeur!r}")
+
+
+@dataclass(frozen=True, slots=True)
 class Config:
     source: TypeSource = TypeSource.MOCK
     mode_llm: ModeLLM = ModeLLM.AUTO
@@ -49,9 +66,12 @@ class Config:
     cle_anthropic_presente: bool = False
     chemin_mock: Path | None = None
     datahub: ConfigDatahub = ConfigDatahub()
-    chemin_journal: Path = CHEMIN_JOURNAL_PAR_DEFAUT
+    dossier_donnees: Path = DOSSIER_DONNEES_PAR_DEFAUT
+    chemin_journal_force: Path | None = None
     duree_cache_secondes: int = 300
     latence_simulee_ms: int = 0
+    securite: ConfigSecurite = ConfigSecurite()
+    format_journaux: str = "texte"  # « texte » ou « json » (journaux structurés)
 
     @classmethod
     def depuis_environnement(cls, env: Mapping[str, str] | None = None) -> Config:
@@ -69,12 +89,31 @@ class Config:
                     token=env.get("DATAHUB_TOKEN") or None,
                     timeout_secondes=float(env.get("DATAHUB_TIMEOUT", "10")),
                 ),
-                chemin_journal=Path(env.get("JOURNAL_PATH", str(CHEMIN_JOURNAL_PAR_DEFAUT))),
+                dossier_donnees=Path(env.get("DOSSIER_DONNEES", str(DOSSIER_DONNEES_PAR_DEFAUT))),
+                chemin_journal_force=Path(env["JOURNAL_PATH"]) if env.get("JOURNAL_PATH") else None,
                 duree_cache_secondes=int(env.get("CACHE_SECONDES", "300")),
                 latence_simulee_ms=int(env.get("LLM_LATENCE_SIMULEE_MS", "0")),
+                securite=ConfigSecurite(
+                    authentification=_booleen(env.get("AUTHENTIFICATION", "oui")),
+                    secret_session=env.get("SESSION_SECRET") or None,
+                    cookie_securise=_booleen(env.get("COOKIE_SECURISE", "non")),
+                    duree_session_heures=int(env.get("DUREE_SESSION_HEURES", "12")),
+                    documentation_api=_booleen(env.get("DOCUMENTATION_API", "oui")),
+                ),
+                format_journaux=env.get("FORMAT_JOURNAUX", "texte").strip().lower(),
             )
         except ValueError as exc:
             raise ErreurConfiguration(f"Configuration invalide : {exc}") from exc
+
+    @property
+    def chemin_journal(self) -> Path:
+        """Journal local des comptes-rendus d'appels."""
+        return self.chemin_journal_force or self.dossier_donnees / "journal.sqlite3"
+
+    @property
+    def chemin_utilisateurs(self) -> Path:
+        """Comptes utilisateurs du copilote."""
+        return self.dossier_donnees / "utilisateurs.sqlite3"
 
     @property
     def mode_llm_effectif(self) -> ModeLLM:

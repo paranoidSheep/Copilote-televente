@@ -19,12 +19,25 @@ Il s'appuie sur les données de l'ERP, lues en **lecture seule** via le datahub,
 
 Prérequis : Python 3.12 ou plus. Node.js n'est utile que pour modifier l'interface.
 
+**Sur un serveur (VPS) : en Docker, avec HTTPS automatique et comptes utilisateurs. Voir [`docs/DEPLOIEMENT.md`](docs/DEPLOIEMENT.md).**
+
+```bash
+cp .env.production.example .env   # DOMAINE, EMAIL_ACME, SESSION_SECRET
+docker compose up -d --build
+docker compose exec copilote python -m copilote.admin demo   # comptes de démonstration
+```
+
+**En local, pour développer :**
+
 ```bash
 python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
+python -m copilote.admin demo                    # crée les comptes et affiche leurs mots de passe
 python -m scripts.peupler_journal_demo --vider   # facultatif : ~45 appels fictifs pour la démo
 python -m copilote                                # http://localhost:8000
 ```
+
+Sur un poste de développement, on peut se passer de connexion avec `AUTHENTIFICATION=non`.
 
 **Sans clé d'API, l'IA est simulée.** Le copilote rejoue des rédactions produites par Claude (voir plus bas), avec exactement le même protocole que l'IA réelle. Pour utiliser Claude :
 
@@ -135,7 +148,14 @@ La documentation interactive est disponible sur `/docs`. Endpoints principaux :
 | GET | `/statistiques` | Indicateurs d'efficacité (`jours`) |
 | GET | `/stock/plan-ecoulement` | Plan d'écoulement du stock |
 | GET | `/labo/agent`, `/labo/clients/{id}/outils`, `/labo/clients/{id}/comparaison` | Inspection de l'agent |
-| GET | `/sante` | Source de données, date, rédacteurs disponibles, télévendeurs |
+| POST | `/auth/connexion`, `/auth/deconnexion` | Ouverture et fermeture de session (cookie signé) |
+| GET | `/session` | Utilisateur connecté, droits, source de données, rédacteurs disponibles |
+| GET | `/sante` | Sonde publique de supervision (aucune donnée métier) |
+
+Toutes les routes, sauf `/sante`, `/auth/*` et l'interface, exigent une session. Les droits sont vérifiés côté serveur :
+- un télévendeur ne voit que sa propre file d'appels et ses propres résultats ;
+- le labo est réservé aux responsables ;
+- un compte-rendu est toujours enregistré au nom de l'utilisateur connecté.
 
 ## Configuration
 
@@ -146,7 +166,14 @@ La documentation interactive est disponible sur `/docs`. Endpoints principaux :
 | `ANTHROPIC_API_KEY` | (vide) | Clé d'API Anthropic |
 | `ANTHROPIC_MODEL` | `claude-sonnet-5-5` | Modèle Claude |
 | `LLM_LATENCE_SIMULEE_MS` | `0` | Latence ajoutée à l'IA simulée (démo réaliste) |
-| `JOURNAL_PATH` | `var/journal.sqlite3` | Journal local des comptes-rendus |
+| `DOSSIER_DONNEES` | `var/` (`/data` en Docker) | Données propres au copilote : journal, comptes, sauvegardes |
+| `JOURNAL_PATH` | `DOSSIER_DONNEES/journal.sqlite3` | Journal local des comptes-rendus |
+| `AUTHENTIFICATION` | `oui` | `non` uniquement sur un poste de développement |
+| `SESSION_SECRET` | (éphémère) | Secret de signature des sessions, **obligatoire en production** |
+| `COOKIE_SECURISE` | `non` (`oui` en Docker) | Cookie de session réservé à HTTPS |
+| `DUREE_SESSION_HEURES` | `12` | Durée d'une session |
+| `DOCUMENTATION_API` | `oui` | Active `/docs` et `/openapi.json` |
+| `FORMAT_JOURNAUX` | `texte` (`json` en Docker) | Journaux lisibles ou structurés |
 | `MOCK_DATA_PATH` | jeu fourni | Autre fichier de données simulées |
 | `DATAHUB_URL`, `DATAHUB_TOKEN`, `DATAHUB_TIMEOUT` | (vides), 10 s | Accès au vrai datahub |
 | `CACHE_SECONDES` | `300` | Durée de vie de l'instantané des données (et du cache du datahub) |
@@ -154,9 +181,12 @@ La documentation interactive est disponible sur `/docs`. Endpoints principaux :
 ## Qualité
 
 ```bash
-make verifier   # ruff, mypy --strict, 128 tests (97 % de couverture), cassettes, types TypeScript
+make verifier   # ruff, mypy --strict, tests et couverture, cassettes, types TypeScript
 make front      # régénère les types puis compile le frontend (nécessite Node.js)
+python -m scripts.rapport_verification --capture var/verification.png   # rapport HTML + capture
 ```
+
+Une **recette visuelle** automatisée (`frontend/recette/captures.mjs`, avec Playwright) parcourt l'application comme un utilisateur (connexion, file, fiche, compte-rendu, tableau de bord) et enregistre des captures. Les captures de chaque étape du plan sont dans [`docs/captures/`](docs/captures/).
 
 La CI GitHub Actions (`.github/workflows/ci.yml`) exécute ces contrôles sur chaque pull request. Elle compile aussi le frontend et vérifie que le JavaScript versionné est à jour.
 
@@ -171,6 +201,7 @@ Les tests sont organisés par couche :
 | `test_agent.py` | Outils, boucle de rédaction, IA simulée, adaptateur Claude via le SDK |
 | `test_services.py` | Choix du rédacteur, cache des fiches, journal |
 | `test_api.py` | Endpoints, codes d'erreur, types TypeScript à jour |
+| `test_comptes.py` | Mots de passe, sessions signées, blocage, droits par rôle, en-têtes de sécurité, administration, sauvegardes |
 
 ## Brancher le vrai datahub
 

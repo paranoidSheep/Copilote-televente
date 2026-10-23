@@ -5,7 +5,6 @@ import { api } from "../api.js";
 import { badge, boutonCopier, carte, messageErreur } from "../composants.js";
 import { h, remplacer } from "../dom.js";
 import { euros, LIBELLES } from "../format.js";
-import { preferences } from "../preferences.js";
 const REPONSES = ["accepte", "refuse", "sans_reponse"];
 const ISSUES = ["commande", "pas_de_besoin", "rappeler", "injoignable"];
 function controleReponse(etat, auChangement) {
@@ -30,7 +29,7 @@ function controleReponse(etat, auChangement) {
     groupe.append(...boutons);
     return groupe;
 }
-export function formulaireCompteRendu(fiche, apresEnregistrement) {
+export function formulaireCompteRendu(fiche, auteur, apresEnregistrement) {
     const etats = fiche.panier.lignes.map((ligne) => ({ ligne, reponse: "sans_reponse", quantite: ligne.quantite }));
     let issueChoisieManuellement = false;
     const total = h("span", { classe: "total nombre" });
@@ -38,7 +37,6 @@ export function formulaireCompteRendu(fiche, apresEnregistrement) {
     const champRappel = h("input", { classe: "champ", attrs: { type: "date", min: fiche.date_du_jour } });
     const blocRappel = h("label", { classe: "etiquette masque" }, "Rappeler le", champRappel);
     const notes = h("textarea", { classe: "champ", attrs: { placeholder: "Notes (facultatif)", maxlength: 1000 } });
-    const vendeurs = h("select", { classe: "champ", attrs: { "aria-label": "Télévendeur" } }, h("option", { attrs: { value: "" } }, "— Télévendeur —"));
     const zoneMessage = h("div");
     const mettreAJour = () => {
         const montant = etats
@@ -53,11 +51,6 @@ export function formulaireCompteRendu(fiche, apresEnregistrement) {
     selectIssue.addEventListener("change", () => {
         issueChoisieManuellement = true;
         mettreAJour();
-    });
-    void api.sante().then((sante) => {
-        for (const nom of sante.televendeurs)
-            vendeurs.append(h("option", { attrs: { value: nom } }, nom));
-        vendeurs.value = preferences.televendeur ?? fiche.client.commercial;
     });
     const lignes = etats.map((etat) => {
         const champQuantite = h("input", {
@@ -77,10 +70,6 @@ export function formulaireCompteRendu(fiche, apresEnregistrement) {
         on: {
             submit: async (evenement) => {
                 evenement.preventDefault();
-                if (!vendeurs.value) {
-                    remplacer(zoneMessage, messageErreur("Choisissez le télévendeur."));
-                    return;
-                }
                 const issue = selectIssue.value;
                 const lignesCr = etats
                     .filter((e) => e.reponse !== "sans_reponse" || issue === "commande")
@@ -98,14 +87,12 @@ export function formulaireCompteRendu(fiche, apresEnregistrement) {
                 try {
                     const resultat = await api.enregistrerCompteRendu({
                         client_id: fiche.client.id,
-                        televendeur: vendeurs.value,
                         issue,
                         notes: notes.value.trim(),
                         rappel_le: issue === "rappeler" ? champRappel.value || null : null,
                         mode_fiche: fiche.mode,
                         lignes: lignesCr,
                     });
-                    preferences.televendeur = vendeurs.value;
                     remplacer(formulaire, h("p", { classe: "message-succes" }, `Compte-rendu enregistré (${LIBELLES.issue[resultat.compte_rendu.issue]}).`), resultat.compte_rendu.issue === "commande"
                         ? h("div", { classe: "pile" }, h("div", { classe: "gras" }, "À saisir dans l'ERP"), h("pre", { classe: "code" }, resultat.texte_saisie_erp), h("div", { classe: "ligne" }, boutonCopier(() => resultat.texte_saisie_erp, "Copier le bon")))
                         : null, h("div", { classe: "ligne" }, h("a", { classe: "bouton", attrs: { href: "#/" } }, "Retour à la file d'appels")));
@@ -117,7 +104,7 @@ export function formulaireCompteRendu(fiche, apresEnregistrement) {
                 }
             },
         },
-    }, etats.length ? h("ul", { classe: "liste" }, lignes) : h("p", { classe: "vide" }, "Aucun produit proposé."), h("div", { classe: "ligne" }, total), h("div", { classe: "colonnes" }, h("label", { classe: "etiquette" }, "Issue de l'appel", selectIssue), h("label", { classe: "etiquette" }, "Télévendeur", vendeurs)), blocRappel, notes, zoneMessage, h("div", { classe: "ligne" }, enregistrer));
+    }, etats.length ? h("ul", { classe: "liste" }, lignes) : h("p", { classe: "vide" }, "Aucun produit proposé."), h("div", { classe: "ligne" }, total), h("div", { classe: "colonnes" }, h("label", { classe: "etiquette" }, "Issue de l'appel", selectIssue), h("div", { classe: "etiquette" }, "Enregistré au nom de", h("strong", { classe: "nom-auteur" }, auteur))), blocRappel, notes, zoneMessage, h("div", { classe: "ligne" }, enregistrer));
     mettreAJour();
     return carte("Compte-rendu d'appel", formulaire, { classe: "" });
 }

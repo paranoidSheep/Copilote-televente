@@ -56,8 +56,11 @@ class ServiceJournal:
     def obtenir(self, compte_rendu_id: int) -> CompteRendu | None:
         return self._depot.obtenir(compte_rendu_id)
 
-    def statistiques(self, jours: int = 30) -> StatistiquesAppels:
-        return calculer_statistiques(self._depot.lister(depuis=self._depuis(jours)))
+    def statistiques(self, jours: int = 30, televendeur: str | None = None) -> StatistiquesAppels:
+        comptes_rendus = self._depot.lister(depuis=self._depuis(jours))
+        if televendeur is not None:
+            comptes_rendus = [cr for cr in comptes_rendus if cr.televendeur == televendeur]
+        return calculer_statistiques(comptes_rendus)
 
     def texte_saisie_erp(self, compte_rendu: CompteRendu) -> str:
         """Récapitulatif des produits acceptés, à saisir dans l'ERP par le télévendeur."""

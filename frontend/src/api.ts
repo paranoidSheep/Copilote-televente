@@ -10,13 +10,17 @@ import type {
   DetailsProduit,
   Fiche,
   FileAppels,
+  ContexteSession,
   ModeLLM,
-  NouveauCompteRendu,
   PlanEcoulement,
   ResultatOutilLabo,
-  Sante,
+  SaisieCompteRendu,
   StatistiquesAppels,
+  Utilisateur,
 } from "./types-api.js";
+
+/** Émis quand le serveur répond 401 : la session a expiré ou a été fermée. */
+export const EVENEMENT_SESSION_EXPIREE = "copilote:session-expiree";
 
 export class ErreurApi extends Error {
   constructor(
@@ -57,6 +61,9 @@ async function requete<T>(chemin: string, init?: RequestInit): Promise<T> {
   const reponse = await fetch(chemin, { headers: { Accept: "application/json" }, ...init });
   const type = reponse.headers.get("content-type") ?? "";
   const corps: unknown = type.includes("application/json") ? await reponse.json() : await reponse.text();
+  if (reponse.status === 401 && !chemin.startsWith("/auth/") && chemin !== "/session") {
+    window.dispatchEvent(new CustomEvent(EVENEMENT_SESSION_EXPIREE));
+  }
   if (!reponse.ok) throw new ErreurApi(reponse.status, detailErreur(corps, reponse.status));
   // Le contrat est garanti par le schéma OpenAPI dont sont générés les types.
   return corps as T;
@@ -64,8 +71,17 @@ async function requete<T>(chemin: string, init?: RequestInit): Promise<T> {
 
 const id = encodeURIComponent;
 
+const json = (methode: "POST", corps?: unknown): RequestInit => ({
+  method: methode,
+  headers: { "Content-Type": "application/json", Accept: "application/json" },
+  ...(corps === undefined ? {} : { body: JSON.stringify(corps) }),
+});
+
 export const api = {
-  sante: () => requete<Sante>("/sante"),
+  session: () => requete<ContexteSession>("/session"),
+  connexion: (identifiant: string, motDePasse: string) =>
+    requete<Utilisateur>("/auth/connexion", json("POST", { identifiant, mot_de_passe: motDePasse })),
+  deconnexion: () => requete<null>("/auth/deconnexion", json("POST")),
 
   clients: (filtres: { q?: string; type?: string; televendeur?: string } = {}) =>
     requete<Client[]>(url("/clients", filtres)),
@@ -76,12 +92,8 @@ export const api = {
     requete<DetailsProduit>(`/clients/${id(clientId)}/produits/${id(code)}`),
 
   fileAppels: (televendeur?: string) => requete<FileAppels>(url("/appels/file", { televendeur })),
-  enregistrerCompteRendu: (compteRendu: NouveauCompteRendu) =>
-    requete<CompteRenduEnregistre>("/comptes-rendus", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify(compteRendu),
-    }),
+  enregistrerCompteRendu: (saisie: SaisieCompteRendu) =>
+    requete<CompteRenduEnregistre>("/comptes-rendus", json("POST", saisie)),
   comptesRendus: (filtres: { client_id?: string; jours?: number } = {}) =>
     requete<CompteRendu[]>(url("/comptes-rendus", filtres)),
   statistiques: (jours: number) => requete<StatistiquesAppels>(url("/statistiques", { jours })),

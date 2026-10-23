@@ -18,7 +18,8 @@ from pydantic import JsonValue
 
 from copilote.api import creer_app
 from copilote.application import creer_application
-from copilote.config import Config
+from copilote.comptes import DepotUtilisateursMemoire
+from copilote.config import Config, ConfigSecurite
 from copilote.journal import DepotMemoire
 
 SORTIE = Path(__file__).resolve().parent.parent / "frontend" / "src" / "types-api.ts"
@@ -80,7 +81,12 @@ def objet_ts(schema: Schema) -> str:
 
 
 def generer() -> str:
-    application = creer_application(Config(), depot_journal=DepotMemoire())
+    # Application éphémère, sans effet de bord : seul le schéma OpenAPI est utilisé.
+    application = creer_application(
+        Config(securite=ConfigSecurite(secret_session="generation-des-types-typescript-sans-session")),
+        depot_journal=DepotMemoire(),
+        depot_utilisateurs=DepotUtilisateursMemoire(),
+    )
     schemas = creer_app(application).openapi()["components"]["schemas"]
     blocs = [
         "// Fichier GÉNÉRÉ par `python -m scripts.generer_types_ts` à partir du schéma OpenAPI.",

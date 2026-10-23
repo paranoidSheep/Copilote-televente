@@ -90,8 +90,10 @@ export const vueTableauDeBord: Vue = async (cible, parametres, contexte) => {
     remplacer(
       cible,
       titrePage(
-        "Tableau de bord",
-        "Efficacité des appels et des propositions du copilote",
+        contexte.peut("voir_statistiques_globales") ? "Tableau de bord" : "Mes résultats",
+        contexte.peut("voir_statistiques_globales")
+          ? "Efficacité des appels et des propositions du copilote"
+          : `Vos appels et l'efficacité de vos propositions, ${contexte.session.utilisateur.nom_affiche}`,
         h(
           "div",
           { classe: "onglets", attrs: { style: "margin:0" } },

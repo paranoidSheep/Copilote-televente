@@ -25,7 +25,9 @@ export const vueTableauDeBord = async (cible, parametres, contexte) => {
     remplacer(cible, chargement("Calcul des indicateurs…"));
     try {
         const stats = await api.statistiques(jours);
-        remplacer(cible, titrePage("Tableau de bord", "Efficacité des appels et des propositions du copilote", h("div", { classe: "onglets", attrs: { style: "margin:0" } }, PERIODES.map((p) => h("button", { classe: p === jours ? "actif" : "", attrs: { type: "button" }, on: { click: () => contexte.naviguer(`/tableau-de-bord?jours=${p}`) } }, `${p} jours`)))), contenu(stats));
+        remplacer(cible, titrePage(contexte.peut("voir_statistiques_globales") ? "Tableau de bord" : "Mes résultats", contexte.peut("voir_statistiques_globales")
+            ? "Efficacité des appels et des propositions du copilote"
+            : `Vos appels et l'efficacité de vos propositions, ${contexte.session.utilisateur.nom_affiche}`, h("div", { classe: "onglets", attrs: { style: "margin:0" } }, PERIODES.map((p) => h("button", { classe: p === jours ? "actif" : "", attrs: { type: "button" }, on: { click: () => contexte.naviguer(`/tableau-de-bord?jours=${p}`) } }, `${p} jours`)))), contenu(stats));
     }
     catch (erreur) {
         remplacer(cible, messageErreur(erreur));

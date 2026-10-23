@@ -1,0 +1,48 @@
+# Déploiement du copilote sur un VPS : application + Caddy (HTTPS automatique).
+# Mode d'emploi complet : docs/DEPLOIEMENT.md
+#
+#   cp .env.production.example .env   # puis compléter DOMAINE, SESSION_SECRET…
+#   docker compose up -d --build
+#   docker compose exec copilote python -m copilote.admin demo
+
+services:
+  copilote:
+    build: .
+    image: copilote-televente:latest
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      COOKIE_SECURISE: "oui"            # le site est servi en HTTPS par Caddy
+      FORWARDED_ALLOW_IPS: "*"          # en-têtes X-Forwarded-* de Caddy (réseau interne uniquement)
+      SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET doit être défini dans .env}
+    volumes:
+      - donnees:/data                    # journal d'appels, comptes, sauvegardes
+    expose:
+      - "8000"                           # jamais publié directement : uniquement via Caddy
+    networks: [interne]
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      copilote:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAINE: ${DOMAINE:?DOMAINE doit être défini dans .env}
+      EMAIL_ACME: ${EMAIL_ACME:?EMAIL_ACME doit être défini dans .env (compte Let's Encrypt)}
+    volumes:
+      - ./deploiement/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_donnees:/data
+      - caddy_config:/config
+    networks: [interne]
+
+volumes:
+  donnees:
+  caddy_donnees:
+  caddy_config:
+
+networks:
+  interne:

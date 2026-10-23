@@ -1,12 +1,13 @@
-"""État du service."""
+"""État du service et contexte de l'utilisateur connecté."""
 
 from __future__ import annotations
 
 from fastapi import APIRouter
 
 from copilote import __version__
-from copilote.api.dependances import ApplicationDep
-from copilote.api.schemas import ModeDisponible, Sante
+from copilote.api.dependances import ApplicationDep, UtilisateurDep
+from copilote.api.schemas import ContexteSession, ModeDisponible, Sante
+from copilote.comptes import Permission
 from copilote.config import ModeLLM
 
 routeur = APIRouter(tags=["système"])
@@ -19,10 +20,18 @@ LIBELLES_MODES = {
 
 
 @routeur.get("/sante", response_model=Sante)
-def sante(app: ApplicationDep) -> Sante:
+def sante() -> Sante:
+    """Sonde publique pour la supervision et le conteneur (aucune donnée métier)."""
+    return Sante(statut="ok", version=__version__)
+
+
+@routeur.get("/session", response_model=ContexteSession)
+def session(app: ApplicationDep, utilisateur: UtilisateurDep) -> ContexteSession:
     ref = app.referentiels.obtenir()
-    return Sante(
-        statut="ok",
+    return ContexteSession(
+        utilisateur=utilisateur,
+        permissions=[p for p in Permission if utilisateur.peut(p)],
+        authentification=app.config.securite.authentification,
         version=__version__,
         source_donnees=app.referentiels.nom_source,
         date_du_jour=ref.date_du_jour,

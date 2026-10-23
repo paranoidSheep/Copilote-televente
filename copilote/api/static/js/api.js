@@ -1,5 +1,7 @@
 // Client HTTP typé de l'API du copilote. Les types viennent de `types-api.ts`,
 // généré à partir du schéma OpenAPI du backend : front et back restent alignés.
+/** Émis quand le serveur répond 401 : la session a expiré ou a été fermée. */
+export const EVENEMENT_SESSION_EXPIREE = "copilote:session-expiree";
 export class ErreurApi extends Error {
     statut;
     constructor(statut, message) {
@@ -35,24 +37,30 @@ async function requete(chemin, init) {
     const reponse = await fetch(chemin, { headers: { Accept: "application/json" }, ...init });
     const type = reponse.headers.get("content-type") ?? "";
     const corps = type.includes("application/json") ? await reponse.json() : await reponse.text();
+    if (reponse.status === 401 && !chemin.startsWith("/auth/") && chemin !== "/session") {
+        window.dispatchEvent(new CustomEvent(EVENEMENT_SESSION_EXPIREE));
+    }
     if (!reponse.ok)
         throw new ErreurApi(reponse.status, detailErreur(corps, reponse.status));
     // Le contrat est garanti par le schéma OpenAPI dont sont générés les types.
     return corps;
 }
 const id = encodeURIComponent;
+const json = (methode, corps) => ({
+    method: methode,
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    ...(corps === undefined ? {} : { body: JSON.stringify(corps) }),
+});
 export const api = {
-    sante: () => requete("/sante"),
+    session: () => requete("/session"),
+    connexion: (identifiant, motDePasse) => requete("/auth/connexion", json("POST", { identifiant, mot_de_passe: motDePasse })),
+    deconnexion: () => requete("/auth/deconnexion", json("POST")),
     clients: (filtres = {}) => requete(url("/clients", filtres)),
     client360: (clientId) => requete(`/clients/${id(clientId)}`),
     fiche: (clientId, mode, regenerer = false) => requete(url(`/clients/${id(clientId)}/fiche`, { mode, regenerer: regenerer || undefined })),
     produit: (clientId, code) => requete(`/clients/${id(clientId)}/produits/${id(code)}`),
     fileAppels: (televendeur) => requete(url("/appels/file", { televendeur })),
-    enregistrerCompteRendu: (compteRendu) => requete("/comptes-rendus", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify(compteRendu),
-    }),
+    enregistrerCompteRendu: (saisie) => requete("/comptes-rendus", json("POST", saisie)),
     comptesRendus: (filtres = {}) => requete(url("/comptes-rendus", filtres)),
     statistiques: (jours) => requete(url("/statistiques", { jours })),
     planEcoulement: () => requete("/stock/plan-ecoulement"),

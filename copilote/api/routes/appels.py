@@ -8,9 +8,10 @@ from fastapi import APIRouter, HTTPException, Query, status
 from fastapi.responses import PlainTextResponse
 
 from copilote.analyses import FileAppels
-from copilote.api.dependances import ApplicationDep
+from copilote.api.dependances import ApplicationDep, UtilisateurDep
 from copilote.api.schemas import CompteRenduEnregistre
-from copilote.journal import CompteRendu, NouveauCompteRendu, StatistiquesAppels
+from copilote.comptes import Permission
+from copilote.journal import CompteRendu, SaisieCompteRendu, StatistiquesAppels
 
 routeur = APIRouter(tags=["appels"])
 
@@ -18,14 +19,22 @@ JoursQuery = Annotated[int, Query(ge=1, le=366, description="Période analysée,
 
 
 @routeur.get("/appels/file", response_model=FileAppels)
-def file_appels(app: ApplicationDep, televendeur: str | None = None) -> FileAppels:
+def file_appels(app: ApplicationDep, utilisateur: UtilisateurDep, televendeur: str | None = None) -> FileAppels:
+    """File du jour. Un télévendeur ne voit que ses clients ; un responsable peut filtrer librement."""
+    if not utilisateur.peut(Permission.VOIR_TOUTES_LES_FILES):
+        televendeur = utilisateur.nom_affiche
     return app.pilotage.file_appels(televendeur)
 
 
 @routeur.post("/comptes-rendus", response_model=CompteRenduEnregistre, status_code=status.HTTP_201_CREATED)
-def enregistrer_compte_rendu(nouveau: NouveauCompteRendu, app: ApplicationDep) -> CompteRenduEnregistre:
-    """Enregistre le compte-rendu d'un appel (dans le journal LOCAL du copilote, jamais dans l'ERP)."""
-    compte_rendu = app.journal.enregistrer(nouveau)
+def enregistrer_compte_rendu(
+    saisie: SaisieCompteRendu, app: ApplicationDep, utilisateur: UtilisateurDep
+) -> CompteRenduEnregistre:
+    """Enregistre le compte-rendu d'un appel au nom de l'utilisateur connecté.
+
+    Le compte-rendu va dans le journal LOCAL du copilote, jamais dans l'ERP.
+    """
+    compte_rendu = app.journal.enregistrer(saisie.par(utilisateur.nom_affiche))
     return CompteRenduEnregistre(compte_rendu=compte_rendu, texte_saisie_erp=app.journal.texte_saisie_erp(compte_rendu))
 
 
@@ -45,5 +54,7 @@ def texte_saisie_erp(compte_rendu_id: int, app: ApplicationDep) -> str:
 
 
 @routeur.get("/statistiques", response_model=StatistiquesAppels)
-def statistiques(app: ApplicationDep, jours: JoursQuery = 30) -> StatistiquesAppels:
-    return app.journal.statistiques(jours)
+def statistiques(app: ApplicationDep, utilisateur: UtilisateurDep, jours: JoursQuery = 30) -> StatistiquesAppels:
+    """Indicateurs globaux pour un responsable ; ses propres résultats pour un télévendeur."""
+    televendeur = None if utilisateur.peut(Permission.VOIR_STATISTIQUES_GLOBALES) else utilisateur.nom_affiche
+    return app.journal.statistiques(jours, televendeur)
