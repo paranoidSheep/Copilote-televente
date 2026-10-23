@@ -4,3 +4,8 @@ __pycache__/
 .venv/
 venv/
 .env
+var/
+frontend/node_modules/
+.coverage
+.mypy_cache/
+.ruff_cache/

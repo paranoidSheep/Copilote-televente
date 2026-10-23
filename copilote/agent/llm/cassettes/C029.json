@@ -1,0 +1,82 @@
+{
+  "client_id": "C029",
+  "date_reference": "2026-10-23",
+  "modele": "claude-sonnet-5-5",
+  "tours": [
+    {
+      "texte": "Je rassemble les données du client : habitudes, produits en retard, stock à écouler, suggestions et appels précédents.",
+      "appels": [
+        {
+          "nom": "historique_client",
+          "arguments": {
+            "client_id": "C029"
+          }
+        },
+        {
+          "nom": "produits_habituels_manquants",
+          "arguments": {
+            "client_id": "C029"
+          }
+        },
+        {
+          "nom": "stock_a_ecouler",
+          "arguments": {
+            "client_id": "C029"
+          }
+        },
+        {
+          "nom": "suggestions_croisees",
+          "arguments": {
+            "client_id": "C029"
+          }
+        },
+        {
+          "nom": "historique_appels",
+          "arguments": {
+            "client_id": "C029"
+          }
+        }
+      ]
+    }
+  ],
+  "redaction": {
+    "resume_habitudes": "Snack en forte croissance (+27 % sur 3 mois), une commande par semaine le jeudi (560 € HT). La volaille fait 42 % des achats (filet de poulet, escalope de dinde), avec la bavette, le pain burger et l'emmental pour les burgers.",
+    "produits_manquants": [
+      {
+        "code": "SG018",
+        "commentaire": "Potatoes épicées commandées toutes les 1 à 2 semaines, plus rien depuis 43 jours : remplacées par autre chose ?"
+      }
+    ],
+    "stock_a_ecouler": [
+      {
+        "code": "FR016",
+        "remise_pct": 25,
+        "argument": "Sa bavette habituelle, DLC demain : 25 % pour les burgers de ce week-end."
+      },
+      {
+        "code": "FR008",
+        "remise_pct": 25,
+        "argument": "Emmental qu'il prend régulièrement, DLC demain."
+      },
+      {
+        "code": "SG006",
+        "remise_pct": 10,
+        "argument": "Ses pains burger, lot à DLC 9 novembre : 10 % s'il anticipe deux cartons."
+      }
+    ],
+    "suggestions": [
+      {
+        "code": "SG025",
+        "argument": "L'autre snack en vend chaque semaine : menu enfant ou accompagnement facile."
+      }
+    ],
+    "accroches": [
+      "Bonjour M. Haddad, votre activité décolle ! Pour ce week-end, j'ai votre bavette et l'emmental à -25 % : de quoi faire des burgers à bonne marge, je vous en mets ?",
+      "Vous ne prenez plus les potatoes épicées depuis début septembre : elles ne se vendaient plus, ou vous avez trouvé une autre référence ?",
+      "Pour jeudi, je vous prépare 2 cartons de pain burger à -10 % en plus de votre commande habituelle ?"
+    ],
+    "points_attention": [
+      "Potatoes épicées décrochées depuis 43 jours."
+    ]
+  }
+}

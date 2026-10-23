@@ -1,0 +1,95 @@
+# Déploiement du copilote sur un VPS : application + Caddy (HTTPS automatique).
+# Mode d'emploi complet : docs/DEPLOIEMENT.md
+#
+#   cp .env.production.example .env   # puis compléter DOMAINE, SESSION_SECRET…
+#   docker compose up -d --build
+#   docker compose exec copilote python -m copilote.admin demo
+
+services:
+  copilote:
+    build: .
+    image: copilote-televente:latest
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      COOKIE_SECURISE: "oui"            # le site est servi en HTTPS par Caddy
+      FORWARDED_ALLOW_IPS: "*"          # en-têtes X-Forwarded-* de Caddy (réseau interne uniquement)
+      SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET doit être défini dans .env}
+    volumes:
+      - donnees:/data                    # journal d'appels, comptes, sauvegardes
+    expose:
+      - "8000"                           # jamais publié directement : uniquement via Caddy
+    networks: [interne]
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      copilote:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAINE: ${DOMAINE:?DOMAINE doit être défini dans .env}
+      EMAIL_ACME: ${EMAIL_ACME:?EMAIL_ACME doit être défini dans .env (compte Let's Encrypt)}
+    volumes:
+      - ./deploiement/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_donnees:/data
+      - caddy_config:/config
+    networks: [interne]
+
+  # Facultatif : simulateur du datahub, pour éprouver DATASOURCE=http avant d'avoir accès au vrai datahub.
+  # Activation : `docker compose --profile simulateur up -d`, avec dans .env :
+  #   DATASOURCE=http, DATAHUB_URL=http://datahub-simulateur:8100, DATAHUB_TOKEN=<au choix>,
+  #   DATAHUB_DATE_REFERENCE=2026-10-23 (date du jeu fictif) et, pour voir le diagnostic
+  #   à l'œuvre, SIMULATEUR_OPTIONS=--anomalies
+  datahub-simulateur:
+    image: copilote-televente:latest
+    profiles: [simulateur]
+    restart: unless-stopped
+    env_file: .env                       # même DATAHUB_TOKEN que le copilote
+    command: python -m copilote.datahub.simulateur --hote 0.0.0.0 --port 8100 ${SIMULATEUR_OPTIONS:-}
+    healthcheck:
+      disable: true                      # la sonde de l'image vise le copilote (port 8000)
+    expose:
+      - "8100"
+    networks: [interne]
+
+  # Facultatif : service d'IA compatible OpenAI simulé (rejeu des rédactions de démonstration),
+  # pour éprouver le branchement d'un fournisseur sans clé. Même profil que le simulateur du datahub ;
+  # dans .env : LLM_COMPATIBLE_BASE_URL=http://ia-simulateur:8200/v1, LLM_COMPATIBLE_MODEL=cassettes,
+  #   LLM_COMPATIBLE_NOM=Simulateur OpenAI (et LLM_MODE=compatible pour en faire le rédacteur par défaut)
+  ia-simulateur:
+    image: copilote-televente:latest
+    profiles: [simulateur]
+    restart: unless-stopped
+    command: python -m copilote.agent.llm.simulateur_openai --hote 0.0.0.0 --port 8200 --latence-ms 300
+    healthcheck:
+      disable: true
+    expose:
+      - "8200"
+    networks: [interne]
+
+  # Facultatif : modèle d'IA local (Ollama), pour que les données ne quittent pas le serveur.
+  # Activation : `docker compose --profile ollama up -d`, puis `docker compose exec ollama ollama pull <modèle>`,
+  # avec dans .env : LLM_COMPATIBLE_BASE_URL=http://ollama:11434/v1, LLM_COMPATIBLE_MODEL=<modèle>,
+  # LLM_COMPATIBLE_NOM=Ollama. Sans carte graphique, prévoir un petit modèle et des fiches lentes.
+  ollama:
+    image: ollama/ollama
+    profiles: [ollama]
+    restart: unless-stopped
+    volumes:
+      - modeles:/root/.ollama            # modèles téléchargés
+    expose:
+      - "11434"
+    networks: [interne]
+
+volumes:
+  donnees:
+  caddy_donnees:
+  caddy_config:
+  modeles:
+
+networks:
+  interne:

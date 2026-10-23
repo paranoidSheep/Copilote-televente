@@ -1,0 +1,17 @@
+.git
+.github
+.venv
+venv
+var
+**/__pycache__
+**/*.pyc
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+frontend/node_modules
+docs/captures
+tests
+.env
+.env.*
+!.env.production.example

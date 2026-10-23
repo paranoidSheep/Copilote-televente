@@ -1,0 +1,82 @@
+{
+  "client_id": "C016",
+  "date_reference": "2026-10-23",
+  "modele": "claude-sonnet-5-5",
+  "tours": [
+    {
+      "texte": "Je rassemble les données du client : habitudes, produits en retard, stock à écouler, suggestions et appels précédents.",
+      "appels": [
+        {
+          "nom": "historique_client",
+          "arguments": {
+            "client_id": "C016"
+          }
+        },
+        {
+          "nom": "produits_habituels_manquants",
+          "arguments": {
+            "client_id": "C016"
+          }
+        },
+        {
+          "nom": "stock_a_ecouler",
+          "arguments": {
+            "client_id": "C016"
+          }
+        },
+        {
+          "nom": "suggestions_croisees",
+          "arguments": {
+            "client_id": "C016"
+          }
+        },
+        {
+          "nom": "historique_appels",
+          "arguments": {
+            "client_id": "C016"
+          }
+        }
+      ]
+    }
+  ],
+  "redaction": {
+    "resume_habitudes": "École qui commande le lundi et le jeudi pour 477 € HT en moyenne. Menus axés sur les légumes et les féculents (pommes de terre, brocolis, pommes noisettes, pommes Golden), avec le poulet et le sauté de veau. Activité en baisse de 40 % sur 3 mois.",
+    "produits_manquants": [
+      {
+        "code": "SG021",
+        "commentaire": "Pavé de saumon surgelé habituellement deux fois par semaine, pas commandé depuis 11 jours."
+      }
+    ],
+    "stock_a_ecouler": [
+      {
+        "code": "FR041",
+        "remise_pct": 20,
+        "argument": "Ses pommes habituelles, DLC dimanche : 20 % pour le fruit de lundi."
+      },
+      {
+        "code": "SG019",
+        "remise_pct": 15,
+        "argument": "Pommes noisettes qu'il prend à chaque commande : 15 % pour faire une réserve."
+      },
+      {
+        "code": "FR008",
+        "remise_pct": 25,
+        "argument": "Emmental habituel, DLC demain : uniquement s'il cuisine samedi."
+      }
+    ],
+    "suggestions": [
+      {
+        "code": "SG020",
+        "argument": "3 cantines sur 4 le servent : alternative au saumon, très appréciée des enfants."
+      }
+    ],
+    "accroches": [
+      "Bonjour Mme Blanc, pour lundi je vous remets 4 cartons de pavé de saumon comme d'habitude ? Je n'en ai pas vu la semaine dernière.",
+      "J'ai vos pommes Golden à -20 % et les pommes noisettes à -15 % : je vous ajoute vos quantités habituelles ?",
+      "Les autres écoles du secteur servent notre filet de colin pané : je vous en mets un carton pour essayer ?"
+    ],
+    "points_attention": [
+      "Activité en baisse de 40 % sur 3 mois : vérifier les effectifs ou un éventuel changement de fournisseur."
+    ]
+  }
+}

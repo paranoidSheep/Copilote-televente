@@ -1,0 +1,93 @@
+{
+  "client_id": "C010",
+  "date_reference": "2026-10-23",
+  "modele": "claude-sonnet-5-5",
+  "tours": [
+    {
+      "texte": "Je rassemble les données du client : habitudes, produits en retard, stock à écouler, suggestions et appels précédents.",
+      "appels": [
+        {
+          "nom": "historique_client",
+          "arguments": {
+            "client_id": "C010"
+          }
+        },
+        {
+          "nom": "produits_habituels_manquants",
+          "arguments": {
+            "client_id": "C010"
+          }
+        },
+        {
+          "nom": "stock_a_ecouler",
+          "arguments": {
+            "client_id": "C010"
+          }
+        },
+        {
+          "nom": "suggestions_croisees",
+          "arguments": {
+            "client_id": "C010"
+          }
+        },
+        {
+          "nom": "historique_appels",
+          "arguments": {
+            "client_id": "C010"
+          }
+        }
+      ]
+    },
+    {
+      "texte": "Les calamars sont décrochés chez ce client mais en surstock chez nous : je vérifie ses quantités habituelles.",
+      "appels": [
+        {
+          "nom": "details_produit",
+          "arguments": {
+            "client_id": "C010",
+            "code": "SG023"
+          }
+        }
+      ]
+    }
+  ],
+  "redaction": {
+    "resume_habitudes": "Pizzeria qui commande une fois par semaine, le jeudi, pour 638 € HT en moyenne. La crèmerie fait deux tiers des achats (emmental, mozzarella, parmesan), avec les oignons émincés et les pâtons. Activité stable.",
+    "produits_manquants": [
+      {
+        "code": "SG023",
+        "commentaire": "Pris toutes les 1 à 2 semaines (7 sachets), plus rien depuis 43 jours : possible concurrent."
+      },
+      {
+        "code": "SG029",
+        "commentaire": "Sorbet citron hebdomadaire jusqu'à fin septembre, puis plus rien : probablement la fin de saison."
+      }
+    ],
+    "stock_a_ecouler": [
+      {
+        "code": "SG023",
+        "remise_pct": 15,
+        "argument": "Pour reconquérir les calamars : 15 % sur sa quantité habituelle, nous en avons beaucoup."
+      },
+      {
+        "code": "FR008",
+        "remise_pct": 25,
+        "argument": "Son produit le plus commandé, DLC demain : 25 % pour les pizzas du week-end."
+      },
+      {
+        "code": "FR007",
+        "remise_pct": 20,
+        "argument": "Il en prend 16 kg par semaine, lot à DLC dimanche."
+      }
+    ],
+    "suggestions": [],
+    "accroches": [
+      "Bonjour M. Benali, j'ai votre emmental râpé et votre mozzarella en DLC courte, à -25 % et -20 % : vous pouvez les écouler sur les pizzas de ce week-end ?",
+      "Je ne vois plus vos calamars à la romaine depuis début septembre : si vous voulez les remettre à la carte, je vous fais 15 % sur 7 sachets.",
+      "Pour jeudi, je vous prépare votre commande habituelle ? Pâtons, oignons émincés, parmesan…"
+    ],
+    "points_attention": [
+      "Calamars à la romaine décrochés depuis 43 jours (sorbet citron aussi, mais plutôt pour raison de saison)."
+    ]
+  }
+}

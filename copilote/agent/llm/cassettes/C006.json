@@ -1,0 +1,107 @@
+{
+  "client_id": "C006",
+  "date_reference": "2026-10-23",
+  "modele": "claude-sonnet-5-5",
+  "tours": [
+    {
+      "texte": "Je rassemble les données du client : habitudes, produits en retard, stock à écouler, suggestions et appels précédents.",
+      "appels": [
+        {
+          "nom": "historique_client",
+          "arguments": {
+            "client_id": "C006"
+          }
+        },
+        {
+          "nom": "produits_habituels_manquants",
+          "arguments": {
+            "client_id": "C006"
+          }
+        },
+        {
+          "nom": "stock_a_ecouler",
+          "arguments": {
+            "client_id": "C006"
+          }
+        },
+        {
+          "nom": "suggestions_croisees",
+          "arguments": {
+            "client_id": "C006"
+          }
+        },
+        {
+          "nom": "historique_appels",
+          "arguments": {
+            "client_id": "C006"
+          }
+        }
+      ]
+    },
+    {
+      "texte": "L'épaule d'agneau était commandée tous les deux jours : je vérifie quand elle s'est arrêtée.",
+      "appels": [
+        {
+          "nom": "details_produit",
+          "arguments": {
+            "client_id": "C006",
+            "code": "FR019"
+          }
+        }
+      ]
+    }
+  ],
+  "redaction": {
+    "resume_habitudes": "Brasserie à fort volume (835 € HT par commande, mardi, mercredi et vendredi). Achats centrés sur la viande et la marée (crevettes, agneau, cabillaud). Activité en baisse de 12 % sur 3 mois.",
+    "produits_manquants": [
+      {
+        "code": "FR019",
+        "commentaire": "Commandée tous les 2 jours (10 kg) jusqu'à mi-septembre, plus rien depuis 35 jours : l'agneau a disparu de la carte, ou il l'achète ailleurs ?"
+      },
+      {
+        "code": "FR040",
+        "commentaire": "Citrons habituellement pris deux fois par semaine, rien depuis 10 jours."
+      },
+      {
+        "code": "FR037",
+        "commentaire": "Pommes de terre (2 sacs) non commandées depuis 9 jours."
+      },
+      {
+        "code": "FR020",
+        "commentaire": "Filet mignon de porc absent depuis 9 jours, pour un rythme habituel de 5 jours."
+      }
+    ],
+    "stock_a_ecouler": [
+      {
+        "code": "FR024",
+        "remise_pct": 20,
+        "argument": "Son magret habituel, DLC dimanche : 20 % pour un plat du week-end."
+      },
+      {
+        "code": "FR008",
+        "remise_pct": 25,
+        "argument": "Il en prend à chaque commande, DLC demain : idéal pour les gratinées."
+      },
+      {
+        "code": "SG029",
+        "remise_pct": 15,
+        "argument": "Sorbet citron en surstock, il en commande régulièrement : 15 % pour faire une réserve."
+      }
+    ],
+    "suggestions": [
+      {
+        "code": "FR033",
+        "argument": "Les deux autres brasseries en prennent, et nous en avons à écouler : bon complément au cabillaud."
+      }
+    ],
+    "accroches": [
+      "Bonjour M. Morel, je prépare votre commande de mardi : je vous remets les citrons, les pommes de terre et le filet mignon comme d'habitude ?",
+      "Je n'ai plus vu passer d'épaule d'agneau depuis la mi-septembre : vous l'avez retirée de la carte ?",
+      "J'ai aussi votre magret à -20 % et l'emmental à -25 %, à utiliser ce week-end : je vous les ajoute ?"
+    ],
+    "points_attention": [
+      "Épaule d'agneau décrochée depuis 35 jours (10 kg tous les 2 jours auparavant).",
+      "Activité en baisse de 12 % sur 3 mois."
+    ]
+  }
+}

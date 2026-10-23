@@ -1,0 +1,79 @@
+{
+  "client_id": "C013",
+  "date_reference": "2026-10-23",
+  "modele": "claude-sonnet-5-5",
+  "tours": [
+    {
+      "texte": "Je rassemble les données du client : habitudes, produits en retard, stock à écouler, suggestions et appels précédents.",
+      "appels": [
+        {
+          "nom": "historique_client",
+          "arguments": {
+            "client_id": "C013"
+          }
+        },
+        {
+          "nom": "produits_habituels_manquants",
+          "arguments": {
+            "client_id": "C013"
+          }
+        },
+        {
+          "nom": "stock_a_ecouler",
+          "arguments": {
+            "client_id": "C013"
+          }
+        },
+        {
+          "nom": "suggestions_croisees",
+          "arguments": {
+            "client_id": "C013"
+          }
+        },
+        {
+          "nom": "historique_appels",
+          "arguments": {
+            "client_id": "C013"
+          }
+        }
+      ]
+    }
+  ],
+  "redaction": {
+    "resume_habitudes": "Cuisine centrale à gros volumes (599 € HT par commande, lundi et jeudi), en hausse de 8 % sur 3 mois. Les viandes surgelées dominent (cordon bleu, steak haché), avec la cuisse de poulet, le filet mignon et les frites.",
+    "produits_manquants": [],
+    "stock_a_ecouler": [
+      {
+        "code": "FR023",
+        "remise_pct": 10,
+        "argument": "Il en prend 8 kg par commande : 10 % sur un lot à DLC lundi, pour le repas de lundi."
+      },
+      {
+        "code": "SG026",
+        "remise_pct": 10,
+        "argument": "Son cordon bleu habituel, en surstock : 10 % pour faire du stock, DLC juin 2027."
+      },
+      {
+        "code": "SG014",
+        "remise_pct": 15,
+        "argument": "Ratatouille qu'il commande régulièrement : 15 % sur de gros volumes."
+      }
+    ],
+    "suggestions": [
+      {
+        "code": "FR033",
+        "argument": "Les 4 autres cantines en servent : poisson blanc pour le menu du vendredi, disponible en quantité."
+      },
+      {
+        "code": "FR021",
+        "argument": "Pris par toutes les cantines du secteur, à prix doux : en sauté ou en rôti."
+      }
+    ],
+    "accroches": [
+      "Bonjour M. Robin, pour lundi je peux vous faire votre cuisse de poulet à -10 % et le cordon bleu à -10 % : je vous mets vos quantités habituelles ?",
+      "J'ai aussi de la ratatouille cuisinée à -15 %, elle se garde jusqu'en 2027 : vous voulez en profiter pour faire du stock ?",
+      "Toutes les autres cantines prennent notre filet de lieu noir pour le menu poisson : je vous en prévois pour essayer ?"
+    ],
+    "points_attention": []
+  }
+}

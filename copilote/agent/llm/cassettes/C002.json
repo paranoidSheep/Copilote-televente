@@ -1,0 +1,99 @@
+{
+  "client_id": "C002",
+  "date_reference": "2026-10-23",
+  "modele": "claude-sonnet-5-5",
+  "tours": [
+    {
+      "texte": "Je rassemble les données du client : habitudes, produits en retard, stock à écouler, suggestions et appels précédents.",
+      "appels": [
+        {
+          "nom": "historique_client",
+          "arguments": {
+            "client_id": "C002"
+          }
+        },
+        {
+          "nom": "produits_habituels_manquants",
+          "arguments": {
+            "client_id": "C002"
+          }
+        },
+        {
+          "nom": "stock_a_ecouler",
+          "arguments": {
+            "client_id": "C002"
+          }
+        },
+        {
+          "nom": "suggestions_croisees",
+          "arguments": {
+            "client_id": "C002"
+          }
+        },
+        {
+          "nom": "historique_appels",
+          "arguments": {
+            "client_id": "C002"
+          }
+        }
+      ]
+    },
+    {
+      "texte": "Le dos de cabillaud est décroché depuis 6 semaines : je vérifie l'historique d'achat avant d'en parler.",
+      "appels": [
+        {
+          "nom": "details_produit",
+          "arguments": {
+            "client_id": "C002",
+            "code": "FR032"
+          }
+        }
+      ]
+    }
+  ],
+  "redaction": {
+    "resume_habitudes": "Restaurant qui commande le mardi et le mercredi (1,8 commande par semaine) pour un panier moyen de 481 € HT. Base très stable en crèmerie et charcuterie (mascarpone, lardons, beurre dans presque toutes les commandes), mais activité en baisse de 29 % sur 3 mois.",
+    "produits_manquants": [
+      {
+        "code": "FR032",
+        "commentaire": "Pris chaque semaine (6,5 kg) jusqu'à début septembre, plus rien depuis 44 jours : le poisson est peut-être parti chez un mareyeur."
+      }
+    ],
+    "stock_a_ecouler": [
+      {
+        "code": "FR031",
+        "remise_pct": 30,
+        "argument": "Alternative au cabillaud : pavé de saumon à -30 %, DLC demain, pour le plat du jour de samedi."
+      },
+      {
+        "code": "FR001",
+        "remise_pct": 10,
+        "argument": "Il en commande 8 kg presque à chaque fois : 10 % sur une plus grosse quantité, DLC mi-novembre."
+      },
+      {
+        "code": "SG006",
+        "remise_pct": 10,
+        "argument": "Ses pains burger habituels, lot à DLC 9 novembre : 10 % s'il anticipe deux cartons."
+      }
+    ],
+    "suggestions": [
+      {
+        "code": "FR009",
+        "argument": "Les 4 autres restaurants en prennent : plateau de fromages ou gratin, cohérent avec sa carte crémerie-charcuterie."
+      },
+      {
+        "code": "FR020",
+        "argument": "Adopté par tous les restaurants de la zone, une viande de saison facile à travailler."
+      }
+    ],
+    "accroches": [
+      "Bonjour M. Fabre, je prépare votre commande de mardi. Dites-moi, je ne vois plus de dos de cabillaud depuis début septembre : vous avez changé la carte, ou vous le trouvez ailleurs ?",
+      "Si vous cherchez un poisson pour ce week-end, j'ai du pavé de saumon à -30 %, à utiliser d'ici demain : je vous en réserve ?",
+      "Tous les restaurants du secteur ont adopté notre comté 12 mois : je vous en glisse un kilo pour goûter ?"
+    ],
+    "points_attention": [
+      "Chiffre d'affaires en baisse de 29 % sur 3 mois.",
+      "Dos de cabillaud décroché depuis 44 jours."
+    ]
+  }
+}

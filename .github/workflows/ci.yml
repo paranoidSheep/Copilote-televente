@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    name: Python (lint, types, tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Dépendances
+        run: pip install -r requirements-dev.txt
+      - name: Lint et formatage (ruff)
+        run: |
+          ruff check .
+          ruff format --check .
+      - name: Typage strict (mypy)
+        run: mypy
+      - name: Tests et couverture
+        run: pytest --cov --cov-report=term-missing:skip-covered --cov-fail-under=90
+      - name: Cassettes de l'IA simulée cohérentes avec les données
+        run: python -m scripts.cassettes verifier
+      - name: Types TypeScript à jour avec l'API
+        run: python -m scripts.generer_types_ts --verifier
+      - name: Contrat d'interface du datahub à jour
+        run: python -m scripts.exporter_contrat_datahub --verifier
+      - name: Banc d'évaluation de la qualité des fiches (IA simulée et repli)
+        run: python -m scripts.evaluer --redacteurs simule,repli --isole --score-minimum 85 --sortie "$RUNNER_TEMP/evaluations"
+
+  frontend:
+    name: TypeScript (compilation stricte)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install --no-audit --no-fund
+      - name: Compilation
+        run: npx tsc -p tsconfig.json
+      - name: JavaScript versionné à jour
+        run: git diff --exit-code -- ../copilote/api/static/js

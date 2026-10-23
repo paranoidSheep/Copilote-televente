@@ -1,0 +1,107 @@
+{
+  "client_id": "C030",
+  "date_reference": "2026-10-23",
+  "modele": "claude-sonnet-5-5",
+  "tours": [
+    {
+      "texte": "Je rassemble les données du client : habitudes, produits en retard, stock à écouler, suggestions et appels précédents.",
+      "appels": [
+        {
+          "nom": "historique_client",
+          "arguments": {
+            "client_id": "C030"
+          }
+        },
+        {
+          "nom": "produits_habituels_manquants",
+          "arguments": {
+            "client_id": "C030"
+          }
+        },
+        {
+          "nom": "stock_a_ecouler",
+          "arguments": {
+            "client_id": "C030"
+          }
+        },
+        {
+          "nom": "suggestions_croisees",
+          "arguments": {
+            "client_id": "C030"
+          }
+        },
+        {
+          "nom": "historique_appels",
+          "arguments": {
+            "client_id": "C030"
+          }
+        }
+      ]
+    },
+    {
+      "texte": "Plusieurs produits phares sont décrochés en même temps : je vérifie les nuggets avant de rédiger.",
+      "appels": [
+        {
+          "nom": "details_produit",
+          "arguments": {
+            "client_id": "C030",
+            "code": "SG025"
+          }
+        }
+      ]
+    }
+  ],
+  "redaction": {
+    "resume_habitudes": "Snack-burger qui commande une fois par semaine, le mardi, pour 434 € HT en moyenne. Jambon blanc, steaks hachés (frais et surgelés), taboulé, nuggets et tomates sont ses bases. Activité en baisse de 16 % et pas de commande depuis 10 jours.",
+    "produits_manquants": [
+      {
+        "code": "SG025",
+        "commentaire": "Nuggets dans 80 % des commandes, plus rien depuis 31 jours : décroché."
+      },
+      {
+        "code": "SG015",
+        "commentaire": "Oignons émincés arrêtés en même temps que les nuggets (31 jours)."
+      },
+      {
+        "code": "FR017",
+        "commentaire": "Steak haché frais (5 boîtes par semaine) absent depuis 17 jours."
+      },
+      {
+        "code": "SG006",
+        "commentaire": "Pain burger habituel non commandé depuis 17 jours."
+      }
+    ],
+    "stock_a_ecouler": [
+      {
+        "code": "SG006",
+        "remise_pct": 15,
+        "argument": "Pour relancer ses burgers : son pain brioché à -15 %, lot à DLC 9 novembre."
+      },
+      {
+        "code": "FR026",
+        "remise_pct": 25,
+        "argument": "Son jambon blanc habituel (dans 96 % des commandes), DLC demain."
+      },
+      {
+        "code": "FR008",
+        "remise_pct": 25,
+        "argument": "Emmental habituel, DLC demain : pour les cheeseburgers du week-end."
+      }
+    ],
+    "suggestions": [
+      {
+        "code": "FR022",
+        "argument": "L'autre snack en fait son produit phare : burger poulet ou wrap."
+      }
+    ],
+    "accroches": [
+      "Bonjour M. Nguyen, je n'ai pas eu de commande de votre part depuis 10 jours, et plusieurs produits comme les nuggets et le steak haché ne passent plus : est-ce que tout va bien de votre côté ?",
+      "Pour relancer les burgers, je peux vous faire le pain brioché à -15 % et l'emmental à -25 % : je vous prépare ça pour mardi ?",
+      "L'autre snack de notre clientèle cartonne avec un burger au filet de poulet Label Rouge : vous voulez essayer quelques kilos ?"
+    ],
+    "points_attention": [
+      "Pas de commande depuis 10 jours et activité en baisse de 16 % sur 3 mois.",
+      "Nuggets et oignons émincés décrochés depuis 31 jours : risque de perte du client."
+    ]
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "client_id": "C024",
+  "date_reference": "2026-10-23",
+  "modele": "claude-sonnet-5-5",
+  "tours": [
+    {
+      "texte": "Je rassemble les données du client : habitudes, produits en retard, stock à écouler, suggestions et appels précédents.",
+      "appels": [
+        {
+          "nom": "historique_client",
+          "arguments": {
+            "client_id": "C024"
+          }
+        },
+        {
+          "nom": "produits_habituels_manquants",
+          "arguments": {
+            "client_id": "C024"
+          }
+        },
+        {
+          "nom": "stock_a_ecouler",
+          "arguments": {
+            "client_id": "C024"
+          }
+        },
+        {
+          "nom": "suggestions_croisees",
+          "arguments": {
+            "client_id": "C024"
+          }
+        },
+        {
+          "nom": "historique_appels",
+          "arguments": {
+            "client_id": "C024"
+          }
+        }
+      ]
+    }
+  ],
+  "redaction": {
+    "resume_habitudes": "Boulangerie en croissance (+15 % sur 3 mois) qui commande le lundi et le mercredi pour 600 € HT en moyenne. Le beurre doux est dans presque toutes les commandes ; œufs, emmental, pains aux raisins et beurre de tourage sont aussi très réguliers.",
+    "produits_manquants": [],
+    "stock_a_ecouler": [
+      {
+        "code": "FR002",
+        "remise_pct": 15,
+        "argument": "Son beurre de tourage habituel (6 plaques), DLC mardi : 15 % pour la production de lundi."
+      },
+      {
+        "code": "SG034",
+        "remise_pct": 10,
+        "argument": "Mini-quiches habituelles, lot à DLC 12 novembre : 10 %."
+      },
+      {
+        "code": "FR001",
+        "remise_pct": 10,
+        "argument": "Il en prend à chaque commande : 10 % sur une plus grosse quantité."
+      }
+    ],
+    "suggestions": [
+      {
+        "code": "FR041",
+        "argument": "Les 4 autres boulangeries en prennent et nous en avons à écouler : pour les chaussons et les tartes."
+      }
+    ],
+    "accroches": [
+      "Bonjour M. Roche, pour lundi j'ai votre beurre de tourage à -15 % et le beurre doux à -10 % : je vous mets vos quantités habituelles, voire un peu plus ?",
+      "Vos mini-quiches sont aussi à -10 % : je vous en prévois 3 cartons comme d'habitude ?",
+      "Toutes les boulangeries du secteur prennent nos pommes Golden pour les chaussons : je vous en ajoute quelques kilos ?"
+    ],
+    "points_attention": []
+  }
+}

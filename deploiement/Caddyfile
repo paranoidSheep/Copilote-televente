@@ -1,0 +1,17 @@
+# Caddy : HTTPS automatique (Let's Encrypt) et proxy vers le copilote.
+{
+	email {$EMAIL_ACME}
+}
+
+{$DOMAINE} {
+	encode zstd gzip
+	reverse_proxy copilote:8000
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+	}
+	log {
+		output stdout
+		format json
+	}
+}

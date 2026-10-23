@@ -1,0 +1,80 @@
+{
+  "client_id": "C009",
+  "date_reference": "2026-10-23",
+  "modele": "claude-sonnet-5-5",
+  "tours": [
+    {
+      "texte": "Je rassemble les données du client : habitudes, produits en retard, stock à écouler, suggestions et appels précédents.",
+      "appels": [
+        {
+          "nom": "historique_client",
+          "arguments": {
+            "client_id": "C009"
+          }
+        },
+        {
+          "nom": "produits_habituels_manquants",
+          "arguments": {
+            "client_id": "C009"
+          }
+        },
+        {
+          "nom": "stock_a_ecouler",
+          "arguments": {
+            "client_id": "C009"
+          }
+        },
+        {
+          "nom": "suggestions_croisees",
+          "arguments": {
+            "client_id": "C009"
+          }
+        },
+        {
+          "nom": "historique_appels",
+          "arguments": {
+            "client_id": "C009"
+          }
+        }
+      ]
+    }
+  ],
+  "redaction": {
+    "resume_habitudes": "Pizzeria qui commande une fois par semaine, le mercredi, pour un gros panier de 930 € HT. Crèmerie et charcuterie dominent (mozzarella, jambon blanc, crème liquide, beurre), avec les desserts (fondant, glaces). Activité stable.",
+    "produits_manquants": [
+      {
+        "code": "SG015",
+        "commentaire": "Pris chaque semaine (8 sachets), pas commandé depuis 16 jours : à remettre dans la commande de mercredi."
+      }
+    ],
+    "stock_a_ecouler": [
+      {
+        "code": "FR026",
+        "remise_pct": 25,
+        "argument": "Son jambon pour les pizzas, DLC demain : 25 % pour le service de ce week-end."
+      },
+      {
+        "code": "FR007",
+        "remise_pct": 20,
+        "argument": "Il en prend 13,5 kg par semaine : DLC dimanche, à écouler sur les pizzas du week-end."
+      },
+      {
+        "code": "SG023",
+        "remise_pct": 15,
+        "argument": "Calamars qu'il connaît, en surstock : 15 % pour sa friture de la mer."
+      }
+    ],
+    "suggestions": [
+      {
+        "code": "FR013",
+        "argument": "Les deux autres pizzerias en prennent : parfait en finition sur les pizzas et les pâtes."
+      }
+    ],
+    "accroches": [
+      "Bonjour M. Russo, j'ai votre jambon blanc et votre mozzarella en DLC courte, avec 20 à 25 % de remise : ça peut vous servir pour les pizzas de ce week-end ?",
+      "Pour mercredi, je vous remets 8 sachets d'oignons émincés comme d'habitude ? Je n'en ai pas vu dans vos deux dernières commandes.",
+      "Les autres pizzerias ont adopté notre Parmigiano Reggiano : je vous en glisse un kilo pour essayer ?"
+    ],
+    "points_attention": []
+  }
+}

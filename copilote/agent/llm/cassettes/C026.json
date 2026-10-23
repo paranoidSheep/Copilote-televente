@@ -1,0 +1,79 @@
+{
+  "client_id": "C026",
+  "date_reference": "2026-10-23",
+  "modele": "claude-sonnet-5-5",
+  "tours": [
+    {
+      "texte": "Je rassemble les données du client : habitudes, produits en retard, stock à écouler, suggestions et appels précédents.",
+      "appels": [
+        {
+          "nom": "historique_client",
+          "arguments": {
+            "client_id": "C026"
+          }
+        },
+        {
+          "nom": "produits_habituels_manquants",
+          "arguments": {
+            "client_id": "C026"
+          }
+        },
+        {
+          "nom": "stock_a_ecouler",
+          "arguments": {
+            "client_id": "C026"
+          }
+        },
+        {
+          "nom": "suggestions_croisees",
+          "arguments": {
+            "client_id": "C026"
+          }
+        },
+        {
+          "nom": "historique_appels",
+          "arguments": {
+            "client_id": "C026"
+          }
+        }
+      ]
+    }
+  ],
+  "redaction": {
+    "resume_habitudes": "Traiteur haut de gamme en croissance (+11 %), une commande par semaine le mercredi (430 € HT). La boucherie fait la moitié des achats (entrecôte, agneau, filet mignon) et le dos de cabillaud est dans presque toutes les commandes.",
+    "produits_manquants": [],
+    "stock_a_ecouler": [
+      {
+        "code": "FR015",
+        "remise_pct": 15,
+        "argument": "Son entrecôte habituelle, petit lot à DLC dimanche : 15 % pour une prestation du week-end."
+      },
+      {
+        "code": "FR024",
+        "remise_pct": 25,
+        "argument": "Magret à -25 % (DLC dimanche), pour varier les plats de réception."
+      },
+      {
+        "code": "SG016",
+        "remise_pct": 15,
+        "argument": "Persil ciselé déjà utilisé, en surstock : 15 % pour faire une réserve."
+      }
+    ],
+    "suggestions": [
+      {
+        "code": "FR027",
+        "argument": "L'autre traiteur en prend chaque semaine : idéal pour les plateaux apéritifs."
+      },
+      {
+        "code": "FR039",
+        "argument": "Utilisé par l'autre traiteur pour les garnitures et les feuilletés."
+      }
+    ],
+    "accroches": [
+      "Bonjour Mme Lemoine, j'ai un petit lot d'entrecôte VBF à -15 % et du magret à -25 %, à utiliser d'ici dimanche : vous avez une prestation ce week-end ?",
+      "Pour mercredi, je vous remets votre dos de cabillaud et votre épaule d'agneau comme d'habitude ?",
+      "Je vous propose aussi notre jambon cru 18 mois, très apprécié pour les plateaux apéritifs : je vous en mets un kilo pour goûter ?"
+    ],
+    "points_attention": []
+  }
+}

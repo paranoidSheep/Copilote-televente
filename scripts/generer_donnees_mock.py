@@ -13,8 +13,8 @@ fichier. Les données sont inventées mais construites pour être crédibles :
   et des produits en surstock.
 
 Usage :
-    python scripts/generer_donnees_mock.py            # écrit datahub/donnees/mock_data.json
-    python scripts/generer_donnees_mock.py --graine 7 --sortie /tmp/autre.json
+    python -m scripts.generer_donnees_mock            # écrit copilote/datahub/donnees/mock_data.json
+    python -m scripts.generer_donnees_mock --graine 7 --sortie /tmp/autre.json
 """
 
 from __future__ import annotations
@@ -23,13 +23,18 @@ import argparse
 import json
 import random
 from collections import defaultdict
+from dataclasses import dataclass, field
 from datetime import date, timedelta
 from pathlib import Path
+
+from pydantic import JsonValue
+
+from copilote.domaine import Client, Commande, Famille, LigneCommande, Lot, Produit
 
 GRAINE = 42
 DATE_REFERENCE = date(2026, 10, 23)  # « aujourd'hui » dans le jeu de données (un vendredi)
 NB_JOURS_HISTORIQUE = 183  # environ 6 mois
-SORTIE_PAR_DEFAUT = Path(__file__).resolve().parent.parent / "datahub" / "donnees" / "mock_data.json"
+SORTIE_PAR_DEFAUT = Path(__file__).resolve().parent.parent / "copilote" / "datahub" / "donnees" / "mock_data.json"
 
 # ---------------------------------------------------------------------------
 # Catalogue : (code, libellé, catégorie, unité, prix HT, durée de vie en jours, cibles)
@@ -192,10 +197,21 @@ RYTHMES = {
 }
 
 # Quantité de base par unité (pour un client « moyen » et une livraison)
-QUANTITE_BASE = {
-    "kg": 6, "plaque": 4, "seau": 2, "brique": 12, "plateau": 6, "sachet": 4,
-    "pot": 4, "boîte": 4, "sac": 3, "filet": 2, "carton": 2, "barquette": 3,
-    "bac": 2, "pièce": 4,
+QUANTITE_BASE: dict[str, int] = {
+    "kg": 6,
+    "plaque": 4,
+    "seau": 2,
+    "brique": 12,
+    "plateau": 6,
+    "sachet": 4,
+    "pot": 4,
+    "boîte": 4,
+    "sac": 3,
+    "filet": 2,
+    "carton": 2,
+    "barquette": 3,
+    "bac": 2,
+    "pièce": 4,
 }
 
 
@@ -203,202 +219,247 @@ def _est_vacances_ete(jour: date) -> bool:
     return date(jour.year, 7, 4) <= jour <= date(jour.year, 8, 31)
 
 
-def generer(graine: int = GRAINE) -> dict:
-    rng = random.Random(graine)
-    debut = DATE_REFERENCE - timedelta(days=NB_JOURS_HISTORIQUE)
+@dataclass(frozen=True)
+class HabitudeProduit:
+    proba: float  # probabilité de figurer dans une commande
+    quantite: float  # quantité typique
 
-    # --- Produits ----------------------------------------------------------
-    produits = []
+
+@dataclass
+class ProfilClient:
+    jours: list[int]
+    produits: dict[str, HabitudeProduit]
+    volume: float
+    tendance: float  # évolution du volume sur 6 mois
+    arrets: dict[str, date] = field(default_factory=dict)  # produits « décrochés » et date d'arrêt
+
+
+@dataclass(frozen=True)
+class JeuDeDonnees:
+    graine: int
+    debut: date
+    clients: list[Client]
+    produits: list[Produit]
+    commandes: list[Commande]
+    lots: list[Lot]
+
+    def vers_json(self) -> dict[str, JsonValue]:
+        return {
+            "meta": {
+                "description": "Jeu de données FICTIF pour la démo du copilote télévente",
+                "graine": self.graine,
+                "date_reference": DATE_REFERENCE.isoformat(),
+                "date_debut_historique": self.debut.isoformat(),
+            },
+            "clients": [c.model_dump(mode="json") for c in self.clients],
+            "produits": [p.model_dump(mode="json") for p in self.produits],
+            "commandes": [c.model_dump(mode="json", exclude={"montant_ht"}) for c in self.commandes],
+            "lots": [l.model_dump(mode="json") for l in self.lots],
+        }
+
+
+def _produits() -> tuple[list[Produit], dict[str, str]]:
+    produits: list[Produit] = []
     cibles_par_produit: dict[str, str] = {}
-    for liste, famille in ((PRODUITS_FRAIS, "frais"), (PRODUITS_SURGELES, "surgele")):
+    for liste, famille in ((PRODUITS_FRAIS, Famille.FRAIS), (PRODUITS_SURGELES, Famille.SURGELE)):
         for code, libelle, categorie, unite, prix, duree_vie, cibles in liste:
             produits.append(
-                {
-                    "code": code,
-                    "libelle": libelle,
-                    "categorie": categorie,
-                    "famille": famille,
-                    "unite": unite,
-                    "prix_unitaire_ht": prix,
-                    "duree_vie_jours": duree_vie,
-                }
+                Produit(
+                    code=code,
+                    libelle=libelle,
+                    categorie=categorie,
+                    famille=famille,
+                    unite=unite,
+                    prix_unitaire_ht=prix,
+                    duree_vie_jours=duree_vie,
+                )
             )
             cibles_par_produit[code] = cibles
-    prix = {p["code"]: p["prix_unitaire_ht"] for p in produits}
-    unites = {p["code"]: p["unite"] for p in produits}
+    return produits, cibles_par_produit
 
-    # --- Clients et habitudes ---------------------------------------------
-    clients = []
-    habitudes = {}
+
+def _clients(
+    rng: random.Random, cibles_par_produit: dict[str, str], unites: dict[str, str]
+) -> tuple[list[Client], dict[str, ProfilClient]]:
+    clients: list[Client] = []
+    profils: dict[str, ProfilClient] = {}
     for i, (nom, type_, cible, ville, contact) in enumerate(CLIENTS, start=1):
         client_id = f"C{i:03d}"
         clients.append(
-            {
-                "id": client_id,
-                "nom": nom,
-                "type": type_,
-                "ville": ville,
-                "contact": contact,
-                "telephone": f"04 78 {rng.randint(10, 99)} {rng.randint(10, 99)} {rng.randint(10, 99)}",
-                "commercial": TELEVENDEURS[i % len(TELEVENDEURS)],
-            }
+            Client(
+                id=client_id,
+                nom=nom,
+                type=type_,
+                ville=ville,
+                contact=contact,
+                telephone=f"04 78 {rng.randint(10, 99)} {rng.randint(10, 99)} {rng.randint(10, 99)}",
+                commercial=TELEVENDEURS[i % len(TELEVENDEURS)],
+            )
         )
 
         candidats = [c for c, cibles in cibles_par_produit.items() if cible in cibles]
         autres = [c for c in cibles_par_produit if c not in candidats]
         jours_possibles, (nb_min, nb_max) = RYTHMES[cible]
-        nb_jours = rng.randint(nb_min, nb_max)
-        jours_commande = sorted(rng.sample(jours_possibles, nb_jours))
+        jours_commande = sorted(rng.sample(jours_possibles, rng.randint(nb_min, nb_max)))
 
-        nb_habituels = min(len(candidats), rng.randint(8, 15))
-        habituels = rng.sample(candidats, nb_habituels)
+        habituels = rng.sample(candidats, min(len(candidats), rng.randint(8, 15)))
         occasionnels = [c for c in candidats if c not in habituels]
         # Un ou deux produits hors cible, commandés très rarement (variété réaliste)
         hors_cible = rng.sample(autres, 2)
 
-        produits_client = {}
+        produits_client: dict[str, HabitudeProduit] = {}
         for code in habituels:
-            produits_client[code] = {
-                "proba": round(rng.uniform(0.45, 0.95), 2),
-                "quantite": QUANTITE_BASE[unites[code]] * rng.uniform(0.6, 1.6),
-            }
+            produits_client[code] = HabitudeProduit(
+                proba=round(rng.uniform(0.45, 0.95), 2),
+                quantite=QUANTITE_BASE[unites[code]] * rng.uniform(0.6, 1.6),
+            )
         for code in occasionnels:
-            produits_client[code] = {
-                "proba": round(rng.uniform(0.02, 0.10), 2),
-                "quantite": QUANTITE_BASE[unites[code]] * rng.uniform(0.5, 1.0),
-            }
+            produits_client[code] = HabitudeProduit(
+                proba=round(rng.uniform(0.02, 0.10), 2),
+                quantite=QUANTITE_BASE[unites[code]] * rng.uniform(0.5, 1.0),
+            )
         for code in hors_cible:
-            produits_client[code] = {"proba": 0.02, "quantite": QUANTITE_BASE[unites[code]] * 0.5}
+            produits_client[code] = HabitudeProduit(proba=0.02, quantite=QUANTITE_BASE[unites[code]] * 0.5)
 
         # Décrochage : pour ~40 % des clients, 1 ou 2 produits habituels importants
         # ne sont plus commandés depuis 3 à 5 semaines (concurrent ? changement de carte ?)
-        arrets = {}
+        arrets: dict[str, date] = {}
         if rng.random() < 0.4:
-            importants = [c for c in habituels if produits_client[c]["proba"] >= 0.6]
+            importants = [c for c in habituels if produits_client[c].proba >= 0.6]
             for code in rng.sample(importants, min(len(importants), rng.randint(1, 2))):
                 arrets[code] = DATE_REFERENCE - timedelta(days=rng.randint(21, 35))
 
-        habitudes[client_id] = {
-            "cible": cible,
-            "jours": jours_commande,
-            "produits": produits_client,
-            "volume": rng.uniform(0.7, 1.8) * (1.8 if type_ == "Cantine scolaire" and "centrale" in nom else 1.0),
-            "tendance": rng.choice([-0.25, -0.1, 0.0, 0.0, 0.1, 0.2]),  # évolution du volume sur 6 mois
-            "arrets": arrets,
-        }
+        profils[client_id] = ProfilClient(
+            jours=jours_commande,
+            produits=produits_client,
+            volume=rng.uniform(0.7, 1.8) * (1.8 if type_ == "Cantine scolaire" and "centrale" in nom else 1.0),
+            tendance=rng.choice([-0.25, -0.1, 0.0, 0.0, 0.1, 0.2]),
+            arrets=arrets,
+        )
+    return clients, profils
 
-    # --- Commandes ---------------------------------------------------------
-    commandes = []
-    numero = 0
+
+def _commandes(
+    rng: random.Random, debut: date, clients: list[Client], profils: dict[str, ProfilClient], prix: dict[str, float]
+) -> list[Commande]:
+    commandes: list[Commande] = []
     jour = debut
     while jour < DATE_REFERENCE:  # les commandes du jour ne sont pas encore passées
         for client in clients:
-            h = habitudes[client["id"]]
-            if jour.weekday() not in h["jours"]:
+            profil = profils[client.id]
+            if jour.weekday() not in profil.jours:
                 continue
-            if client["type"] == "Cantine scolaire" and _est_vacances_ete(jour):
+            if client.type == "Cantine scolaire" and _est_vacances_ete(jour):
                 continue
             if rng.random() < 0.08:  # commande sautée (fermeture, oubli…)
                 continue
             avancement = (jour - debut).days / NB_JOURS_HISTORIQUE
-            facteur_volume = h["volume"] * (1 + h["tendance"] * avancement)
+            facteur_volume = profil.volume * (1 + profil.tendance * avancement)
             ete = jour.month in (6, 7, 8)
 
-            lignes = []
-            for code, param in h["produits"].items():
-                arret = h["arrets"].get(code)
+            lignes: list[LigneCommande] = []
+            for code, habitude in profil.produits.items():
+                arret = profil.arrets.get(code)
                 if arret and jour >= arret:
                     continue
-                proba = param["proba"]
+                proba = habitude.proba
                 if code in PRODUITS_SAISONNIERS_ETE:
                     proba = min(0.95, proba * 1.8) if ete else proba * 0.5
                 if rng.random() > proba:
                     continue
-                quantite = max(1, round(rng.gauss(param["quantite"], param["quantite"] * 0.2) * facteur_volume))
-                lignes.append({"produit_code": code, "quantite": quantite, "prix_unitaire_ht": prix[code]})
-            if not lignes:
-                continue
-            numero += 1
-            commandes.append(
-                {"id": f"CMD{numero:06d}", "client_id": client["id"], "date": jour.isoformat(), "lignes": lignes}
-            )
+                quantite = max(1, round(rng.gauss(habitude.quantite, habitude.quantite * 0.2) * facteur_volume))
+                lignes.append(LigneCommande(produit_code=code, quantite=quantite, prix_unitaire_ht=prix[code]))
+            if lignes:
+                commandes.append(
+                    Commande(id=f"CMD{len(commandes) + 1:06d}", client_id=client.id, date=jour, lignes=tuple(lignes))
+                )
         jour += timedelta(days=1)
+    return commandes
 
-    # --- Stock par lot ----------------------------------------------------
+
+def _lots(rng: random.Random, produits: list[Produit], commandes: list[Commande]) -> list[Lot]:
     # Rotation : quantité vendue par jour sur les 4 dernières semaines
     ventes_28j: dict[str, float] = defaultdict(float)
     limite = DATE_REFERENCE - timedelta(days=28)
     for cmd in commandes:
-        if date.fromisoformat(cmd["date"]) >= limite:
-            for l in cmd["lignes"]:
-                ventes_28j[l["produit_code"]] += l["quantite"]
+        if cmd.date >= limite:
+            for l in cmd.lignes:
+                ventes_28j[l.produit_code] += l.quantite
 
-    codes_frais = [p["code"] for p in produits if p["famille"] == "frais"]
-    codes_surgeles = [p["code"] for p in produits if p["famille"] == "surgele"]
+    codes_frais = [p.code for p in produits if p.famille is Famille.FRAIS]
+    codes_surgeles = [p.code for p in produits if p.famille is Famille.SURGELE]
     # Produits volontairement mis en difficulté pour la démo
     frais_dlc_courte = set(rng.sample(codes_frais, 11))
     surgeles_surstock = set(rng.sample(codes_surgeles, 6))
     surgeles_dlc_proche = set(rng.sample([c for c in codes_surgeles if c not in surgeles_surstock], 2))
     frais_surstock = set(rng.sample([c for c in codes_frais if c not in frais_dlc_courte], 3))
 
-    lots = []
-    num_lot = 0
+    lots: list[Lot] = []
 
-    def ajouter_lot(code: str, quantite: float, dlc: date, duree_vie: int, entrepot: str) -> None:
-        nonlocal num_lot
-        num_lot += 1
-        reception = min(DATE_REFERENCE, dlc - timedelta(days=duree_vie))
+    def ajouter_lot(produit: Produit, quantite: float, dlc: date, entrepot: str) -> None:
         lots.append(
-            {
-                "id": f"L{DATE_REFERENCE:%y%m}-{num_lot:04d}",
-                "produit_code": code,
-                "quantite": max(1, round(quantite)),
-                "dlc": dlc.isoformat(),
-                "date_reception": reception.isoformat(),
-                "entrepot": entrepot,
-            }
+            Lot(
+                id=f"L{DATE_REFERENCE:%y%m}-{len(lots) + 1:04d}",
+                produit_code=produit.code,
+                quantite=max(1, round(quantite)),
+                dlc=dlc,
+                date_reception=min(DATE_REFERENCE, dlc - timedelta(days=produit.duree_vie_jours)),
+                entrepot=entrepot,
+            )
         )
 
     for p in produits:
-        code, duree_vie = p["code"], p["duree_vie_jours"]
-        par_jour = ventes_28j[code] / 28
-        entrepot = "Entrepôt froid positif" if p["famille"] == "frais" else "Chambre négative"
-        if p["famille"] == "frais":
-            couverture = 21 if code in frais_surstock else rng.uniform(4, 9)
+        par_jour = ventes_28j[p.code] / 28
+        if p.famille is Famille.FRAIS:
+            couverture = 21 if p.code in frais_surstock else rng.uniform(4, 9)
             total = max(3, par_jour * couverture)
             nb_lots = rng.randint(1, 3)
             for k in range(nb_lots):
-                # Même règle que l'outil stock_a_ecouler : DLC courte = au plus 30 %
-                # de la durée de vie restante (entre 2 et 5 jours)
-                seuil_dlc_courte = max(2, min(5, round(duree_vie * 0.3)))
-                if k == 0 and code in frais_dlc_courte:
+                # Même règle que l'analyse du stock : DLC courte = 30 % de la durée de vie (2 à 5 jours)
+                seuil_dlc_courte = max(2, min(5, round(p.duree_vie_jours * 0.3)))
+                if k == 0 and p.code in frais_dlc_courte:
                     dlc = DATE_REFERENCE + timedelta(days=rng.randint(1, seuil_dlc_courte))
                 else:
-                    dlc = DATE_REFERENCE + timedelta(days=rng.randint(seuil_dlc_courte + 1, duree_vie + 1))
-                ajouter_lot(code, total / nb_lots, dlc, duree_vie, entrepot)
+                    dlc = DATE_REFERENCE + timedelta(days=rng.randint(seuil_dlc_courte + 1, p.duree_vie_jours + 1))
+                ajouter_lot(p, total / nb_lots, dlc, "Entrepôt froid positif")
         else:
-            couverture = rng.uniform(150, 220) if code in surgeles_surstock else rng.uniform(20, 45)
+            couverture = rng.uniform(150, 220) if p.code in surgeles_surstock else rng.uniform(20, 45)
             total = max(5, par_jour * couverture)
             nb_lots = rng.randint(1, 2)
             for k in range(nb_lots):
-                if k == 0 and code in surgeles_dlc_proche:
+                if k == 0 and p.code in surgeles_dlc_proche:
                     dlc = DATE_REFERENCE + timedelta(days=rng.randint(12, 28))
                 else:
-                    dlc = DATE_REFERENCE + timedelta(days=rng.randint(120, duree_vie))
-                ajouter_lot(code, total / nb_lots, dlc, duree_vie, entrepot)
+                    dlc = DATE_REFERENCE + timedelta(days=rng.randint(120, p.duree_vie_jours))
+                ajouter_lot(p, total / nb_lots, dlc, "Chambre négative")
+    return lots
 
-    return {
-        "meta": {
-            "description": "Jeu de données FICTIF pour la démo du copilote télévente",
-            "graine": graine,
-            "date_reference": DATE_REFERENCE.isoformat(),
-            "date_debut_historique": debut.isoformat(),
-        },
-        "clients": clients,
-        "produits": produits,
-        "commandes": commandes,
-        "lots": lots,
-    }
+
+def generer(graine: int = GRAINE) -> JeuDeDonnees:
+    rng = random.Random(graine)
+    debut = DATE_REFERENCE - timedelta(days=NB_JOURS_HISTORIQUE)
+    produits, cibles_par_produit = _produits()
+    clients, profils = _clients(rng, cibles_par_produit, {p.code: p.unite for p in produits})
+    commandes = _commandes(rng, debut, clients, profils, {p.code: p.prix_unitaire_ht for p in produits})
+    lots = _lots(rng, produits, commandes)
+    return JeuDeDonnees(graine, debut, clients, produits, commandes, lots)
+
+
+def ecrire(jeu: JeuDeDonnees, sortie: Path) -> None:
+    """Une commande / un lot par ligne : fichier compact mais lisible et comparable (diff)."""
+    donnees = jeu.vers_json()
+    sortie.parent.mkdir(parents=True, exist_ok=True)
+    cles = ("clients", "produits", "commandes", "lots")
+    with sortie.open("w", encoding="utf-8") as f:
+        f.write("{\n")
+        f.write(f'"meta": {json.dumps(donnees["meta"], ensure_ascii=False)},\n')
+        for i, cle in enumerate(cles):
+            elements = donnees[cle]
+            assert isinstance(elements, list)
+            f.write(f'"{cle}": [\n')
+            f.write(",\n".join(json.dumps(x, ensure_ascii=False) for x in elements))
+            f.write("\n]" + (",\n" if i < len(cles) - 1 else "\n"))
+        f.write("}\n")
 
 
 def main() -> None:
@@ -406,21 +467,11 @@ def main() -> None:
     parser.add_argument("--graine", type=int, default=GRAINE)
     parser.add_argument("--sortie", type=Path, default=SORTIE_PAR_DEFAUT)
     args = parser.parse_args()
-
-    donnees = generer(args.graine)
-    args.sortie.parent.mkdir(parents=True, exist_ok=True)
-    # Une commande / un lot par ligne : fichier compact mais lisible et diff-able
-    with args.sortie.open("w", encoding="utf-8") as f:
-        f.write("{\n")
-        f.write(f'"meta": {json.dumps(donnees["meta"], ensure_ascii=False)},\n')
-        for i, cle in enumerate(("clients", "produits", "commandes", "lots")):
-            f.write(f'"{cle}": [\n')
-            f.write(",\n".join(json.dumps(x, ensure_ascii=False) for x in donnees[cle]))
-            f.write("\n]" + (",\n" if i < 3 else "\n"))
-        f.write("}\n")
+    jeu = generer(args.graine)
+    ecrire(jeu, args.sortie)
     print(
-        f"{len(donnees['clients'])} clients, {len(donnees['produits'])} produits, "
-        f"{len(donnees['commandes'])} commandes, {len(donnees['lots'])} lots -> {args.sortie}"
+        f"{len(jeu.clients)} clients, {len(jeu.produits)} produits, "
+        f"{len(jeu.commandes)} commandes, {len(jeu.lots)} lots -> {args.sortie}"
     )
 
 

@@ -1,0 +1,80 @@
+{
+  "client_id": "C021",
+  "date_reference": "2026-10-23",
+  "modele": "claude-sonnet-5-5",
+  "tours": [
+    {
+      "texte": "Je rassemble les données du client : habitudes, produits en retard, stock à écouler, suggestions et appels précédents.",
+      "appels": [
+        {
+          "nom": "historique_client",
+          "arguments": {
+            "client_id": "C021"
+          }
+        },
+        {
+          "nom": "produits_habituels_manquants",
+          "arguments": {
+            "client_id": "C021"
+          }
+        },
+        {
+          "nom": "stock_a_ecouler",
+          "arguments": {
+            "client_id": "C021"
+          }
+        },
+        {
+          "nom": "suggestions_croisees",
+          "arguments": {
+            "client_id": "C021"
+          }
+        },
+        {
+          "nom": "historique_appels",
+          "arguments": {
+            "client_id": "C021"
+          }
+        }
+      ]
+    }
+  ],
+  "redaction": {
+    "resume_habitudes": "Grosse boulangerie-pâtisserie (1 080 € HT par commande, mardi et jeudi), activité stable. La viennoiserie crue représente plus de la moitié des achats (pains aux raisins, pains au chocolat, croissants), avec la pâte feuilletée et les mini-quiches pour le snacking.",
+    "produits_manquants": [],
+    "stock_a_ecouler": [
+      {
+        "code": "SG034",
+        "remise_pct": 10,
+        "argument": "Ses mini-quiches habituelles (5 cartons par commande), lot à DLC 12 novembre : 10 % s'il anticipe."
+      },
+      {
+        "code": "FR004",
+        "remise_pct": 20,
+        "argument": "Il en prend 26 briques par commande, DLC dimanche : pour les crèmes du week-end."
+      },
+      {
+        "code": "FR026",
+        "remise_pct": 25,
+        "argument": "Jambon pour les sandwichs du samedi, DLC demain."
+      },
+      {
+        "code": "FR041",
+        "remise_pct": 20,
+        "argument": "18 kg habituels de pommes : à -20 % pour les chaussons et tartes du week-end."
+      }
+    ],
+    "suggestions": [
+      {
+        "code": "SG032",
+        "argument": "Toutes les autres boulangeries en prennent : tartelettes et entremets de saison."
+      }
+    ],
+    "accroches": [
+      "Bonjour Mme Dupuis, pour vos ventes de ce week-end j'ai la crème liquide, le jambon blanc et les pommes en DLC courte, de 20 à 25 % de remise : je vous ajoute vos quantités habituelles ?",
+      "Pour mardi, je peux vous faire 10 % sur les mini-quiches si vous prenez vos 5 cartons dès maintenant.",
+      "Les autres boulangeries du secteur utilisent notre mélange de fruits rouges pour les tartelettes : je vous en glisse un sachet pour essayer ?"
+    ],
+    "points_attention": []
+  }
+}

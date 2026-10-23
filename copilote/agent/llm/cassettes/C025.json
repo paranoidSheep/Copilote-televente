@@ -1,0 +1,79 @@
+{
+  "client_id": "C025",
+  "date_reference": "2026-10-23",
+  "modele": "claude-sonnet-5-5",
+  "tours": [
+    {
+      "texte": "Je rassemble les données du client : habitudes, produits en retard, stock à écouler, suggestions et appels précédents.",
+      "appels": [
+        {
+          "nom": "historique_client",
+          "arguments": {
+            "client_id": "C025"
+          }
+        },
+        {
+          "nom": "produits_habituels_manquants",
+          "arguments": {
+            "client_id": "C025"
+          }
+        },
+        {
+          "nom": "stock_a_ecouler",
+          "arguments": {
+            "client_id": "C025"
+          }
+        },
+        {
+          "nom": "suggestions_croisees",
+          "arguments": {
+            "client_id": "C025"
+          }
+        },
+        {
+          "nom": "historique_appels",
+          "arguments": {
+            "client_id": "C025"
+          }
+        }
+      ]
+    }
+  ],
+  "redaction": {
+    "resume_habitudes": "Traiteur en croissance (+14 %) qui commande une fois par semaine, le mercredi, pour 467 € HT. Profiteroles à chaque commande, champignons, lardons et filet mignon très réguliers : une cuisine de réception classique.",
+    "produits_manquants": [],
+    "stock_a_ecouler": [
+      {
+        "code": "FR024",
+        "remise_pct": 25,
+        "argument": "Magret à -25 % (DLC dimanche) : parfait pour une prestation de week-end."
+      },
+      {
+        "code": "FR015",
+        "remise_pct": 25,
+        "argument": "Entrecôte VBF à -25 %, petit lot de 3 kg à utiliser d'ici dimanche."
+      },
+      {
+        "code": "SG034",
+        "remise_pct": 15,
+        "argument": "Mini-quiches pour cocktails, 15 % sur un lot à DLC 12 novembre."
+      }
+    ],
+    "suggestions": [
+      {
+        "code": "FR042",
+        "argument": "L'autre traiteur de notre clientèle l'utilise pour ses feuilletés de cocktail."
+      },
+      {
+        "code": "FR018",
+        "argument": "Pris par l'autre traiteur : un plat de réception qui se prépare à l'avance."
+      }
+    ],
+    "accroches": [
+      "Bonjour Mme Vidal, avez-vous des prestations ce week-end ? J'ai du magret et de l'entrecôte VBF à -25 %, à utiliser d'ici dimanche.",
+      "Pour vos cocktails, je peux vous faire les mini-quiches à -15 % : je vous en mets un ou deux cartons ?",
+      "Pour mercredi, je vous prépare vos profiteroles, champignons et lardons comme d'habitude ?"
+    ],
+    "points_attention": []
+  }
+}
