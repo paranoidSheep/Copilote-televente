@@ -1,0 +1,19 @@
+[project]
+name = "copilote-televente"
+version = "0.1.0"
+description = "MVP de copilote télévente : fiche d'appel générée par IA à partir des données ERP"
+requires-python = ">=3.12"
+dependencies = [
+    "anthropic>=2.2",
+    "fastapi>=0.115",
+    "uvicorn>=0.30",
+    "httpx>=0.27",
+    "pydantic>=2.7",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

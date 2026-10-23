@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f5c4d">
+  <title>Copilote télévente</title>
+  <style>
+    :root {
+      --fond: #f3f5f4;
+      --carte: #ffffff;
+      --texte: #1b2420;
+      --texte-doux: #5b6863;
+      --bordure: #dfe5e2;
+      --primaire: #0f5c4d;
+      --primaire-clair: #e3f1ed;
+      --alerte: #b4401e;
+      --alerte-clair: #fbece6;
+      --opportunite: #8a5a00;
+      --opportunite-clair: #fdf3dc;
+      --info: #2a5a9e;
+      --info-clair: #e7eef9;
+      --rayon: 14px;
+      --ombre: 0 1px 2px rgba(16, 32, 26, .06), 0 2px 8px rgba(16, 32, 26, .05);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --fond: #111614; --carte: #1a211e; --texte: #e8eeeb; --texte-doux: #9aa8a2; --bordure: #2c3632;
+        --primaire: #5fc4a8; --primaire-clair: #1d3530; --alerte: #f08a66; --alerte-clair: #3a231b;
+        --opportunite: #f0c060; --opportunite-clair: #362c16; --info: #8fb4ee; --info-clair: #1d2a3d;
+        --ombre: none;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--fond); color: var(--texte);
+      font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    header.barre {
+      position: sticky; top: 0; z-index: 10; background: var(--primaire); color: #fff;
+      padding: calc(12px + env(safe-area-inset-top)) 16px 12px; display: flex; align-items: center; gap: 12px;
+    }
+    @media (prefers-color-scheme: dark) { header.barre { color: #0b1512; } }
+    header.barre h1 { font-size: 1.1rem; margin: 0; flex: 1; font-weight: 650; letter-spacing: .01em; }
+    header.barre button {
+      background: rgba(255,255,255,.16); border: 0; color: inherit; border-radius: 10px;
+      padding: 8px 12px; font: inherit; font-size: .9rem; cursor: pointer;
+    }
+    main { max-width: 760px; margin: 0 auto; padding: 16px 16px 48px; }
+    .statut { font-size: .8rem; color: var(--texte-doux); margin: 0 0 12px; }
+    .recherche {
+      width: 100%; padding: 12px 14px; font: inherit; border-radius: 12px; border: 1px solid var(--bordure);
+      background: var(--carte); color: var(--texte); margin-bottom: 10px;
+    }
+    .filtres { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 8px; scrollbar-width: none; }
+    .filtres button {
+      flex: none; border: 1px solid var(--bordure); background: var(--carte); color: var(--texte);
+      border-radius: 999px; padding: 6px 12px; font: inherit; font-size: .85rem; cursor: pointer;
+    }
+    .filtres button.actif { background: var(--primaire); border-color: var(--primaire); color: #fff; }
+    ul.clients { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+    ul.clients a {
+      display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit;
+      background: var(--carte); border: 1px solid var(--bordure); border-radius: var(--rayon); padding: 12px 14px;
+      box-shadow: var(--ombre);
+    }
+    ul.clients a:active { transform: scale(.99); }
+    .avatar {
+      flex: none; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
+      background: var(--primaire-clair); color: var(--primaire); font-weight: 700; font-size: .95rem;
+    }
+    .client-nom { font-weight: 600; }
+    .client-detail { font-size: .85rem; color: var(--texte-doux); }
+    .chevron { margin-left: auto; color: var(--texte-doux); }
+    .carte {
+      background: var(--carte); border: 1px solid var(--bordure); border-radius: var(--rayon);
+      padding: 16px; margin-bottom: 12px; box-shadow: var(--ombre);
+    }
+    .carte h2 {
+      font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: var(--texte-doux);
+      margin: 0 0 10px; display: flex; align-items: center; gap: 8px;
+    }
+    .carte h2 .compte { background: var(--fond); border-radius: 999px; padding: 1px 8px; font-size: .75rem; }
+    .entete-fiche h2.nom { font-size: 1.35rem; text-transform: none; letter-spacing: 0; color: var(--texte); margin: 0; }
+    .entete-fiche .sous-titre { color: var(--texte-doux); font-size: .9rem; margin: 2px 0 12px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .bouton {
+      display: inline-flex; align-items: center; gap: 6px; border-radius: 10px; padding: 9px 14px; font: inherit;
+      font-size: .9rem; font-weight: 600; text-decoration: none; cursor: pointer; border: 1px solid var(--bordure);
+      background: var(--carte); color: var(--texte);
+    }
+    .bouton.principal { background: var(--primaire); color: #fff; border-color: var(--primaire); }
+    @media (prefers-color-scheme: dark) { .bouton.principal, .filtres button.actif { color: #0b1512; } }
+    .badge { display: inline-block; font-size: .72rem; font-weight: 700; border-radius: 6px; padding: 2px 7px; vertical-align: middle; }
+    .badge.ia { background: var(--info-clair); color: var(--info); }
+    .badge.repli { background: var(--opportunite-clair); color: var(--opportunite); }
+    .badge.alerte { background: var(--alerte-clair); color: var(--alerte); }
+    .badge.dlc { background: var(--alerte-clair); color: var(--alerte); }
+    .badge.surstock { background: var(--opportunite-clair); color: var(--opportunite); }
+    .avertissement { font-size: .82rem; color: var(--texte-doux); margin-top: 10px; }
+    .accroches { background: var(--primaire-clair); border-color: transparent; }
+    .accroches h2 { color: var(--primaire); }
+    .accroches ol { margin: 0; padding-left: 0; list-style: none; display: grid; gap: 10px; counter-reset: a; }
+    .accroches li {
+      counter-increment: a; position: relative; padding-left: 34px; font-size: 1.02rem; line-height: 1.5;
+    }
+    .accroches li::before {
+      content: counter(a); position: absolute; left: 0; top: 1px; width: 24px; height: 24px; border-radius: 50%;
+      background: var(--primaire); color: #fff; font-size: .8rem; font-weight: 700; display: grid; place-items: center;
+    }
+    @media (prefers-color-scheme: dark) { .accroches li::before { color: #0b1512; } }
+    .attention { background: var(--alerte-clair); border-color: transparent; }
+    .attention h2 { color: var(--alerte); }
+    .attention ul { margin: 0; padding-left: 18px; }
+    .kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 12px 0; }
+    @media (min-width: 560px) { .kpis { grid-template-columns: repeat(4, 1fr); } }
+    .kpi { background: var(--fond); border-radius: 10px; padding: 10px; }
+    .kpi .valeur { font-size: 1.15rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .kpi .libelle { font-size: .75rem; color: var(--texte-doux); }
+    .hausse { color: var(--primaire); } .baisse { color: var(--alerte); }
+    .puces { display: flex; flex-wrap: wrap; gap: 6px; }
+    .puce { font-size: .8rem; background: var(--fond); border-radius: 999px; padding: 4px 10px; }
+    ul.produits { list-style: none; margin: 0; padding: 0; }
+    ul.produits li { padding: 12px 0; border-top: 1px solid var(--bordure); }
+    ul.produits li:first-child { border-top: 0; padding-top: 0; }
+    ul.produits li:last-child { padding-bottom: 0; }
+    .ligne-produit { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+    .produit-nom { font-weight: 600; }
+    .produit-meta { font-size: .82rem; color: var(--texte-doux); margin-top: 2px; }
+    .produit-argument { font-size: .92rem; margin-top: 4px; }
+    .prix { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .prix .barre { text-decoration: line-through; color: var(--texte-doux); font-size: .82rem; }
+    .prix .remise { font-weight: 700; color: var(--alerte); }
+    .vide { color: var(--texte-doux); font-size: .92rem; margin: 0; }
+    .chargement { text-align: center; padding: 48px 16px; color: var(--texte-doux); }
+    .rond {
+      width: 28px; height: 28px; margin: 0 auto 12px; border-radius: 50%; border: 3px solid var(--bordure);
+      border-top-color: var(--primaire); animation: tourne .8s linear infinite;
+    }
+    @keyframes tourne { to { transform: rotate(360deg); } }
+    .erreur { background: var(--alerte-clair); color: var(--alerte); padding: 12px 14px; border-radius: 12px; }
+    pre.texte { white-space: pre-wrap; font-size: .82rem; margin: 0; }
+    details summary { cursor: pointer; color: var(--texte-doux); font-size: .9rem; }
+    .pied { text-align: center; font-size: .78rem; color: var(--texte-doux); margin-top: 18px; }
+  </style>
+</head>
+<body>
+  <header class="barre">
+    <button id="retour" hidden aria-label="Retour à la liste">← Clients</button>
+    <h1 id="titre">Copilote télévente</h1>
+  </header>
+  <main id="contenu"></main>
+
+<script>
+"use strict";
+// Page monofichier : liste des clients (#/) et fiche d'appel (#/client/C001).
+const contenu = document.getElementById("contenu");
+const boutonRetour = document.getElementById("retour");
+const titre = document.getElementById("titre");
+let clients = [];
+let filtreType = "Tous";
+let recherche = "";
+
+const euros = (n) => n == null ? "—" : n.toLocaleString("fr-FR", { style: "currency", currency: "EUR" });
+const dateFr = (iso) => iso ? new Date(iso + "T00:00:00").toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" }) : "—";
+const echapper = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const initiales = (nom) => nom.replace(/^(Le|La|Les|L'|Au|Aux|Chez)\s*/i, "").split(/\s+/).slice(0, 2).map((m) => m[0]).join("").toUpperCase();
+const nombre = (n) => Number(n).toLocaleString("fr-FR");
+// « 2 cartons », « 3 plateaux », « 6 kg »
+const quantite = (n, unite) => `${nombre(n)} ${n >= 2 && !["kg", "L"].includes(unite) && !/[sx]$/.test(unite) ? unite + (/eau$/.test(unite) ? "x" : "s") : unite}`;
+
+async function lireJson(url) {
+  const reponse = await fetch(url);
+  if (!reponse.ok) {
+    const corps = await reponse.json().catch(() => ({}));
+    throw new Error(corps.detail || `Erreur ${reponse.status}`);
+  }
+  return reponse.json();
+}
+
+// ---------------------------------------------------------------- Liste
+async function afficherListe() {
+  boutonRetour.hidden = true;
+  titre.textContent = "Copilote télévente";
+  document.title = "Copilote télévente";
+  if (!clients.length) {
+    contenu.innerHTML = `<div class="chargement"><div class="rond"></div>Chargement des clients…</div>`;
+    try {
+      const [liste, sante] = await Promise.all([lireJson("/clients"), lireJson("/sante")]);
+      clients = liste;
+      window.__sante = sante;
+    } catch (e) {
+      contenu.innerHTML = `<p class="erreur">Impossible de charger les clients : ${echapper(e.message)}</p>`;
+      return;
+    }
+  }
+  const s = window.__sante || {};
+  const types = ["Tous", ...new Set(clients.map((c) => c.type))];
+  contenu.innerHTML = `
+    <p class="statut">Données : <strong>${echapper(s.source_donnees)}</strong> · au ${dateFr(s.date_du_jour)} ·
+      ${s.mode === "ia" ? `<span class="badge ia">IA active</span>` : `<span class="badge repli">Mode repli (sans IA)</span>`}</p>
+    <input class="recherche" type="search" placeholder="Rechercher un client, une ville…" value="${echapper(recherche)}" aria-label="Rechercher">
+    <div class="filtres" role="tablist">${types.map((t) => `<button class="${t === filtreType ? "actif" : ""}" data-type="${echapper(t)}">${echapper(t)}</button>`).join("")}</div>
+    <ul class="clients"></ul>`;
+  const champ = contenu.querySelector(".recherche");
+  champ.addEventListener("input", () => { recherche = champ.value; remplirListe(); });
+  contenu.querySelectorAll(".filtres button").forEach((b) => b.addEventListener("click", () => {
+    filtreType = b.dataset.type;
+    contenu.querySelectorAll(".filtres button").forEach((x) => x.classList.toggle("actif", x === b));
+    remplirListe();
+  }));
+  remplirListe();
+}
+
+function remplirListe() {
+  const q = recherche.trim().toLowerCase();
+  const visibles = clients.filter((c) =>
+    (filtreType === "Tous" || c.type === filtreType) &&
+    (!q || `${c.nom} ${c.ville} ${c.contact} ${c.type}`.toLowerCase().includes(q)));
+  contenu.querySelector("ul.clients").innerHTML = visibles.map((c) => `
+    <li><a href="#/client/${encodeURIComponent(c.id)}">
+      <span class="avatar">${echapper(initiales(c.nom))}</span>
+      <span><span class="client-nom">${echapper(c.nom)}</span><br>
+        <span class="client-detail">${echapper(c.type)} · ${echapper(c.ville)} · ${echapper(c.contact)}</span></span>
+      <span class="chevron">›</span></a></li>`).join("") || `<li><p class="vide">Aucun client ne correspond.</p></li>`;
+}
+
+// ---------------------------------------------------------------- Fiche
+async function afficherFiche(id, regenerer = false) {
+  boutonRetour.hidden = false;
+  titre.textContent = "Fiche d'appel";
+  window.scrollTo(0, 0);
+  contenu.innerHTML = `<div class="chargement"><div class="rond"></div>Préparation de la fiche d'appel…<br><small>L'analyse peut prendre quelques secondes.</small></div>`;
+  let f;
+  try {
+    f = await lireJson(`/clients/${encodeURIComponent(id)}/fiche${regenerer ? "?regenerer=true" : ""}`);
+  } catch (e) {
+    contenu.innerHTML = `<p class="erreur">Impossible de générer la fiche : ${echapper(e.message)}</p>`;
+    return;
+  }
+  document.title = `${f.client.nom} — Fiche d'appel`;
+  const h = f.habitudes;
+  const tendance = h.tendance_ca_pct;
+  const classeTendance = tendance == null ? "" : tendance >= 0 ? "hausse" : "baisse";
+
+  contenu.innerHTML = `
+    <section class="carte entete-fiche">
+      <h2 class="nom">${echapper(f.client.nom)}</h2>
+      <p class="sous-titre">${echapper(f.client.type)} · ${echapper(f.client.ville)} · ${echapper(f.client.contact)}
+        ${h.prochain_jour_habituel ? `<br>Prochaine commande habituelle : <strong>${echapper(h.prochain_jour_habituel)}</strong>` : ""}</p>
+      <div class="actions">
+        <a class="bouton principal" href="tel:${echapper(f.client.telephone.replace(/\s/g, ""))}">📞 ${echapper(f.client.telephone)}</a>
+        <button class="bouton" id="copier">Copier la fiche</button>
+        <button class="bouton" id="regenerer">Régénérer</button>
+      </div>
+      <p class="avertissement">
+        ${f.mode === "ia" ? `<span class="badge ia">Rédigée par IA</span>` : `<span class="badge repli">Mode repli</span>`}
+        ${f.avertissement ? echapper(f.avertissement) : ""}
+      </p>
+    </section>
+
+    ${f.accroches.length ? `<section class="carte accroches"><h2>À dire au téléphone</h2>
+      <ol>${f.accroches.map((a) => `<li>« ${echapper(a)} »</li>`).join("")}</ol></section>` : ""}
+
+    ${f.points_attention.length ? `<section class="carte attention"><h2>Points d'attention</h2>
+      <ul>${f.points_attention.map((p) => `<li>${echapper(p)}</li>`).join("")}</ul></section>` : ""}
+
+    <section class="carte">
+      <h2>Habitudes du client</h2>
+      <p style="margin:0">${echapper(h.resume)}</p>
+      <div class="kpis">
+        <div class="kpi"><div class="valeur">${euros(h.panier_moyen_ht)}</div><div class="libelle">Panier moyen HT</div></div>
+        <div class="kpi"><div class="valeur">${h.commandes_par_semaine != null ? nombre(h.commandes_par_semaine) : "—"}</div><div class="libelle">Commandes / semaine</div></div>
+        <div class="kpi"><div class="valeur">${h.jours_depuis_derniere_commande ?? "—"} j</div><div class="libelle">Depuis la dernière commande</div></div>
+        <div class="kpi"><div class="valeur ${classeTendance}">${tendance == null ? "—" : (tendance > 0 ? "+" : "") + tendance + " %"}</div><div class="libelle">Tendance 3 mois</div></div>
+      </div>
+      ${h.produits_recurrents.length ? `<div class="puces">${h.produits_recurrents.map((p) =>
+        `<span class="puce">${echapper(p.libelle)} · ${p.frequence_pct} %</span>`).join("")}</div>` : ""}
+    </section>
+
+    <section class="carte">
+      <h2>Habituels pas encore commandés <span class="compte">${f.produits_manquants.length}</span></h2>
+      ${f.produits_manquants.length ? `<ul class="produits">${f.produits_manquants.map((m) => `
+        <li><div class="ligne-produit"><span class="produit-nom">${echapper(m.libelle)}</span>
+          ${m.statut === "décroché" ? `<span class="badge alerte">décroché</span>` : ""}</div>
+          <div class="produit-meta">Habituellement ${echapper(quantite(m.quantite_habituelle, m.unite))} tous les ${nombre(m.rythme_habituel_jours)} j ·
+            dernière commande le ${dateFr(m.derniere_commande)} (il y a ${m.jours_depuis_derniere_commande} j)</div>
+          <div class="produit-argument">${echapper(m.commentaire)}</div></li>`).join("")}</ul>`
+        : `<p class="vide">Rien à signaler : le client est à jour de ses commandes habituelles.</p>`}
+    </section>
+
+    <section class="carte">
+      <h2>Stock à écouler <span class="compte">${f.stock_a_ecouler.length}</span></h2>
+      ${f.stock_a_ecouler.length ? `<ul class="produits">${f.stock_a_ecouler.map((s) => `
+        <li><div class="ligne-produit"><span class="produit-nom">${echapper(s.libelle)}</span>
+          <span class="prix">${s.remise_pct ? `<span class="barre">${euros(s.prix_unitaire_ht)}</span> ` : ""}<strong>${euros(s.prix_remise_ht)}</strong>
+            ${s.remise_pct ? `<br><span class="remise">−${s.remise_pct} %</span>` : ""}</span></div>
+          <div class="produit-meta">
+            ${s.motifs.map((m) => `<span class="badge ${m === "DLC courte" ? "dlc" : "surstock"}">${echapper(m)}</span>`).join(" ")}
+            DLC ${dateFr(s.dlc)} (J+${s.jours_avant_dlc}) · lot ${echapper(s.lot_id)} · ${echapper(quantite(s.quantite_lot, s.unite))} dispo · prix HT / ${echapper(s.unite)}</div>
+          <div class="produit-argument">${echapper(s.argument)}</div></li>`).join("")}</ul>`
+        : `<p class="vide">Aucun produit à écouler pertinent pour ce client.</p>`}
+    </section>
+
+    ${f.suggestions.length ? `<section class="carte">
+      <h2>À proposer aussi <span class="compte">${f.suggestions.length}</span></h2>
+      <ul class="produits">${f.suggestions.map((s) => `
+        <li><div class="ligne-produit"><span class="produit-nom">${echapper(s.libelle)}</span>
+          <span class="prix">${euros(s.prix_unitaire_ht)}</span></div>
+          <div class="produit-meta">Adopté par ${s.taux_adoption_pct} % des clients similaires</div>
+          <div class="produit-argument">${echapper(s.argument)}</div></li>`).join("")}</ul></section>` : ""}
+
+    <section class="carte">
+      <details><summary>Version texte</summary><pre class="texte">${echapper(f.texte)}</pre></details>
+    </section>
+    <p class="pied">Données du ${dateFr(f.date_du_jour)} · générée à ${new Date(f.genere_le).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}${f.modele ? " · " + echapper(f.modele) : ""}</p>`;
+
+  document.getElementById("regenerer").addEventListener("click", () => afficherFiche(id, true));
+  document.getElementById("copier").addEventListener("click", async (ev) => {
+    try { await navigator.clipboard.writeText(f.texte); ev.target.textContent = "Copiée ✓"; }
+    catch { ev.target.textContent = "Copie impossible"; }
+  });
+}
+
+// ---------------------------------------------------------------- Routage
+function router() {
+  const m = location.hash.match(/^#\/client\/(.+)$/);
+  if (m) afficherFiche(decodeURIComponent(m[1]));
+  else afficherListe();
+}
+boutonRetour.addEventListener("click", () => { location.hash = "#/"; });
+window.addEventListener("hashchange", router);
+router();
+</script>
+</body>
+</html>
