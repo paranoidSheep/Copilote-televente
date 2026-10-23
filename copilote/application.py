@@ -18,11 +18,13 @@ from copilote.analyses import REGLES_PAR_DEFAUT, ReglesMetier
 from copilote.comptes import DepotUtilisateurs, DepotUtilisateursSQLite, ServiceComptes, SignataireSessions
 from copilote.config import Config, ModeLLM
 from copilote.datahub import DataSource, creer_source
+from copilote.evaluation import DepotEvaluations, DepotEvaluationsSQLite
 from copilote.horloge import Horloge, HorlogeAlignee
 from copilote.journal import DepotJournal, DepotSQLite
 from copilote.services import (
     FournisseurReferentiel,
     ServiceDiagnostic,
+    ServiceEvaluation,
     ServiceFiches,
     ServiceJournal,
     ServicePilotage,
@@ -40,6 +42,7 @@ class Application:
     pilotage: ServicePilotage
     comptes: ServiceComptes
     diagnostic: ServiceDiagnostic
+    evaluation: ServiceEvaluation
 
 
 def signataire_sessions(config: Config) -> SignataireSessions:
@@ -69,6 +72,7 @@ def creer_application(
     fournisseurs: Mapping[ModeLLM, FournisseurLLM] | None = None,
     horloge: Horloge | None = None,
     depot_utilisateurs: DepotUtilisateurs | None = None,
+    depot_evaluations: DepotEvaluations | None = None,
     regles: ReglesMetier = REGLES_PAR_DEFAUT,
 ) -> Application:
     source = source or creer_source(config)
@@ -92,4 +96,7 @@ def creer_application(
             depot_utilisateurs or DepotUtilisateursSQLite(config.chemin_utilisateurs), signataire_sessions(config)
         ),
         diagnostic=ServiceDiagnostic(source, regles),
+        evaluation=ServiceEvaluation(
+            fiches, referentiels, depot_evaluations or DepotEvaluationsSQLite(config.chemin_evaluations)
+        ),
     )

@@ -2,6 +2,7 @@
 // généré à partir du schéma OpenAPI du backend : front et back restent alignés.
 
 import type {
+  Campagne,
   Client,
   Client360,
   CompteRendu,
@@ -11,12 +12,15 @@ import type {
   Fiche,
   FileAppels,
   ContexteSession,
+  DemandeEvaluation,
   ModeLLM,
   PlanEcoulement,
   RapportDiagnostic,
   ResultatOutilLabo,
+  ResumeCampagne,
   SaisieCompteRendu,
   StatistiquesAppels,
+  SuiviEvaluation,
   Utilisateur,
 } from "./types-api.js";
 
@@ -109,5 +113,11 @@ export const api = {
       requete<ResultatOutilLabo[]>(url(`/labo/clients/${id(clientId)}/outils`, { produit })),
     comparaison: (clientId: string) =>
       requete<Partial<Record<ModeLLM, Fiche>>>(`/labo/clients/${id(clientId)}/comparaison`),
+    evaluations: () => requete<ResumeCampagne[]>("/labo/evaluations"),
+    evaluation: (campagneId: number) => requete<Campagne>(`/labo/evaluations/${campagneId}`),
+    suiviEvaluation: () => requete<SuiviEvaluation | null>("/labo/evaluations/suivi"),
+    lancerEvaluation: (demande: DemandeEvaluation) =>
+      requete<SuiviEvaluation>("/labo/evaluations", json("POST", demande)),
+    rapportEvaluation: (campagneId: number) => `/labo/evaluations/${campagneId}/rapport.md`,
   },
 };

@@ -115,6 +115,8 @@ main { max-width: 1080px; margin: 0 auto; padding: 16px 16px 40px; }
   .grille.fiche { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); align-items: start; }
 }
 .pile { display: grid; gap: 12px; align-content: start; }
+/* Un élément de grille s'élargit par défaut jusqu'à son contenu (un tableau large déborderait sur mobile). */
+.pile > *, .grille > *, .comparaison > * { min-width: 0; }
 .ligne { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .espace { flex: 1; }
 .doux { color: var(--texte-doux); }
@@ -356,3 +358,18 @@ details.regle .nom { font-weight: 600; }
 details.regle .tableau td { padding: 6px; }
 details.regle .tableau td:first-child { width: 1%; white-space: nowrap; padding-right: 18px; }
 .compte-regle { font-weight: 800; min-width: 2ch; text-align: right; }
+
+/* ------------------------------------------------------------------ Qualité IA (labo) */
+
+.score-redacteur { font-size: 2rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
+.score-redacteur.succes { color: var(--succes); }
+.score-redacteur.attention { color: var(--attention); }
+.score-redacteur.alerte { color: var(--alerte); }
+.critere { display: grid; grid-template-columns: 92px 1fr 44px; gap: 8px; align-items: center; font-size: .86rem; }
+.critere .jauge { display: block; margin-top: 0; height: 8px; border-radius: 4px; }
+.critere .jauge > span.succes { background: var(--succes); }
+.critere .jauge > span.attention { background: var(--attention); }
+.critere .jauge > span.alerte { background: var(--alerte); }
+.critere .nombre { text-align: right; }
+label.puce { cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; }
+details.regle > summary .badge { margin-left: 2px; }

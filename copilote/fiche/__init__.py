@@ -2,6 +2,7 @@
 
 from .assemblage import assembler_fiche
 from .modeles import (
+    Correction,
     Fiche,
     LignePanier,
     ManquantFiche,
@@ -13,12 +14,14 @@ from .modeles import (
     RedactionSuggestion,
     StockFiche,
     SuggestionFiche,
+    TypeCorrection,
 )
 from .rendu import fiche_en_texte
 from .repli import rediger_sans_ia
 from .trace import EtapeTrace, TraceExecution, TypeEtape
 
 __all__ = [
+    "Correction",
     "EtapeTrace",
     "Fiche",
     "LignePanier",
@@ -32,6 +35,7 @@ __all__ = [
     "StockFiche",
     "SuggestionFiche",
     "TraceExecution",
+    "TypeCorrection",
     "TypeEtape",
     "assembler_fiche",
     "fiche_en_texte",

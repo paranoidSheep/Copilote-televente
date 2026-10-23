@@ -21,6 +21,18 @@ export interface CaMensuel {
   ca_ht: number;
 }
 
+/** Une exécution du banc : tous les clients demandés, avec chaque rédacteur demandé. */
+export interface Campagne {
+  id: number | null;
+  lancee_le: string;
+  duree_ms: number;
+  empreinte_prompt: string;
+  source: string;
+  date_donnees: string;
+  syntheses: SyntheseRedacteur[];
+  fiches: EvaluationFiche[];
+}
+
 /** Un client professionnel (restaurant, cantine, boulangerie…). */
 export interface Client {
   id: string;
@@ -48,6 +60,16 @@ export interface ClientCible {
   pertinence: Pertinence;
   raison: string;
   quantite_estimee: number;
+}
+
+export interface CompteCorrection {
+  type: TypeCorrection;
+  nombre: number;
+}
+
+export interface CompteDefaut {
+  libelle: string;
+  nombre: number;
 }
 
 /** Compte-rendu enregistré. */
@@ -87,10 +109,27 @@ export interface ContexteSession {
   televendeurs: string[];
 }
 
+export interface ControleFormat {
+  libelle: string;
+  reussi: boolean;
+  detail: string;
+}
+
+export interface Correction {
+  type: TypeCorrection;
+  message: string;
+  codes: string[];
+}
+
 export interface DefinitionOutil {
   nom: string;
   description: string;
   schema_entree: Record<string, JsonValue>;
+}
+
+export interface DemandeEvaluation {
+  redacteurs: ModeLLM[];
+  clients?: string[] | null;
 }
 
 export interface DetailsProduit {
@@ -120,6 +159,30 @@ export interface EtapeTrace {
   erreur: boolean;
 }
 
+export type EtatEvaluation = "en_cours" | "terminee" | "echouee";
+
+/** Note d'une fiche, et tout ce qui l'explique. */
+export interface EvaluationFiche {
+  client_id: string;
+  client_nom: string;
+  redacteur: ModeLLM;
+  modele: string | null;
+  mode_obtenu: ModeFiche;
+  repli_force: boolean;
+  score_global: number;
+  score_fidelite: number;
+  score_couverture: number;
+  score_format: number;
+  corrections: Correction[];
+  remises_hors_regle: string[];
+  signaux: SignalCle[];
+  controles_format: ControleFormat[];
+  duree_ms: number;
+  jetons_entree: number;
+  jetons_sortie: number;
+  cout_usd: number | null;
+}
+
 export interface Exemple {
   identifiant: string;
   detail: string;
@@ -143,7 +206,7 @@ export interface Fiche {
   points_attention: string[];
   appels_precedents: HistoriqueAppels;
   panier: PanierPropose;
-  garde_fous: string[];
+  garde_fous: Correction[];
   trace: TraceExecution | null;
   texte: string;
 }
@@ -386,6 +449,18 @@ export interface ResultatRegle {
   exemples: Exemple[];
 }
 
+/** Une campagne de l'historique, sans le détail par fiche. */
+export interface ResumeCampagne {
+  id: number;
+  lancee_le: string;
+  duree_ms: number;
+  empreinte_prompt: string;
+  source: string;
+  date_donnees: string;
+  nb_clients: number;
+  syntheses: SyntheseRedacteur[];
+}
+
 export type Role = "televendeur" | "responsable" | "admin";
 
 /** Compte-rendu tel que saisi dans l'interface (l'auteur est l'utilisateur connecté). */
@@ -402,6 +477,13 @@ export interface SaisieCompteRendu {
 export interface Sante {
   statut: string;
   version: string;
+}
+
+export interface SignalCle {
+  type: TypeSignal;
+  libelle: string;
+  code: string | null;
+  couvert: boolean;
 }
 
 /** Un produit à écouler, avec son lot prioritaire (DLC la plus proche). */
@@ -504,6 +586,42 @@ export interface SuggestionFiche {
   argument: string;
 }
 
+/** Avancement de la campagne lancée depuis l'interface (exécutée en arrière-plan). */
+export interface SuiviEvaluation {
+  etat: EtatEvaluation;
+  redacteurs: ModeLLM[];
+  faites: number;
+  total: number;
+  lancee_le: string;
+  campagne_id: number | null;
+  erreur: string | null;
+}
+
+/** Moyennes et totaux d'un rédacteur sur l'ensemble des clients évalués. */
+export interface SyntheseRedacteur {
+  redacteur: ModeLLM;
+  modele: string | null;
+  nb_fiches: number;
+  score_global: number;
+  score_fidelite: number;
+  score_couverture: number;
+  score_format: number;
+  fiches_sans_defaut: number;
+  taux_repli_pct: number;
+  corrections: CompteCorrection[];
+  remises_hors_regle: number;
+  signaux_couverts: number;
+  signaux_total: number;
+  defauts_format: CompteDefaut[];
+  latence_mediane_ms: number;
+  latence_p95_ms: number;
+  jetons_entree_moyens: number;
+  jetons_sortie_moyens: number;
+  cout_total_usd: number | null;
+  cout_par_fiche_usd: number | null;
+  cout_projete: boolean;
+}
+
 export interface TraceExecution {
   fournisseur: string;
   modele: string;
@@ -513,7 +631,13 @@ export interface TraceExecution {
 
 export type Traitement = "ecarte" | "signale";
 
+/** Nature d'une correction appliquée par les garde-fous à la rédaction de l'IA. */
+export type TypeCorrection = "produit_inconnu" | "offre_refusee" | "remise_plafonnee" | "selection_limitee" | "stock_complete" | "accroche_retiree" | "accroches_limitees" | "accroches_completees" | "rappel_ajoute";
+
 export type TypeEtape = "appel_llm" | "outil" | "garde_fou";
+
+/** Faits que toute bonne fiche doit faire ressortir. */
+export type TypeSignal = "manquant_prioritaire" | "lot_urgent_habituel" | "rappel_promis";
 
 /** Compte tel qu'exposé à l'application (jamais le hachage du mot de passe). */
 export interface Utilisateur {

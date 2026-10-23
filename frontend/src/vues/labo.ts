@@ -6,6 +6,7 @@ import { h, remplacer } from "../dom.js";
 import { euros, LIBELLES } from "../format.js";
 import type { Contexte, Vue } from "../routeur.js";
 import type { Client, Fiche, ModeLLM } from "../types-api.js";
+import { ongletsLabo } from "./onglets-labo.js";
 
 const json = (valeur: unknown): string => JSON.stringify(valeur, null, 2);
 
@@ -103,6 +104,7 @@ export const vueLabo: Vue = async (cible, parametres, _contexte: Contexte) => {
 
   remplacer(
     cible,
+    ongletsLabo("agent"),
     titrePage("Laboratoire", "Inspecter l'agent IA : ce qu'il voit, ce qu'il produit, et la comparaison des rédacteurs"),
     carte(
       "Client à analyser",

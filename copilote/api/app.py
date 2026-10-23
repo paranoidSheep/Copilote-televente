@@ -34,7 +34,8 @@ from copilote.domaine import (
     ErreurSourceDonnees,
     ProduitIntrouvable,
 )
-from copilote.services import ErreurValidation
+from copilote.evaluation import CampagneIntrouvable
+from copilote.services import ErreurValidation, EvaluationEnCours
 
 from .dependances import exiger, utilisateur_courant
 from .routes import admin, appels, auth, clients, labo, stock, systeme
@@ -52,6 +53,8 @@ CODES_ERREURS: list[tuple[type[ErreurCopilote], int]] = [
     (ClientIntrouvable, status.HTTP_404_NOT_FOUND),
     (ProduitIntrouvable, status.HTTP_404_NOT_FOUND),
     (ErreurValidation, status.HTTP_422_UNPROCESSABLE_CONTENT),
+    (EvaluationEnCours, status.HTTP_409_CONFLICT),
+    (CampagneIntrouvable, status.HTTP_404_NOT_FOUND),
     (ErreurSourceDonnees, status.HTTP_502_BAD_GATEWAY),
     (ErreurConfiguration, status.HTTP_500_INTERNAL_SERVER_ERROR),
 ]

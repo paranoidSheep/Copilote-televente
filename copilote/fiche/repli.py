@@ -104,14 +104,17 @@ def accroches_gabarits(
     stock: Sequence[tuple[PropositionStock, int]],
     suggestions: Sequence[SuggestionCroisee],
 ) -> list[str]:
-    """2 ou 3 phrases d'accroche construites sur les éléments les plus forts de la fiche."""
+    """2 ou 3 phrases d'accroche construites sur les éléments les plus forts de la fiche.
+
+    La première salue toujours l'interlocuteur par son nom.
+    """
     contact = habitudes.client.contact or "Madame, Monsieur"
     pour = f" pour {fmt.jour_et_date(habitudes.prochain_jour_habituel)}" if habitudes.prochain_jour_habituel else ""
     accroches: list[str] = []
     if manquants:
         m = manquants[0]
         accroches.append(
-            f"Bonjour {contact}, je prépare votre commande{pour} : je ne vois pas de "
+            f"Je prépare votre commande{pour} : je ne vois pas de "
             f"{fmt.minuscule_initiale(m.libelle)} depuis quelque temps, je vous en remets "
             f"{fmt.quantite(m.quantite_habituelle, m.unite)} comme d'habitude ?"
         )
@@ -129,9 +132,10 @@ def accroches_gabarits(
             "voulez-vous que je vous en glisse un pour essayer ?"
         )
     if len(accroches) < 2:
-        accroches.append(f"Bonjour {contact}, avez-vous besoin de compléter votre commande{pour} ?")
+        accroches.append(f"Avez-vous besoin de compléter votre commande{pour} ?")
     if len(accroches) < 2:
         accroches.append("Avez-vous des besoins particuliers cette semaine : événement, nouveau plat à la carte ?")
+    accroches[0] = f"Bonjour {contact}, {fmt.minuscule_initiale(accroches[0])}"
     return accroches[:MAX_ACCROCHES]
 
 

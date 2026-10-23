@@ -14,6 +14,7 @@ import { vueDonnees } from "./vues/donnees.js";
 import { vueFiche } from "./vues/fiche.js";
 import { vueFileAppels } from "./vues/file-appels.js";
 import { vueLabo } from "./vues/labo.js";
+import { vueQualiteIA } from "./vues/qualite-ia.js";
 import { vueStock } from "./vues/stock.js";
 import { vueTableauDeBord } from "./vues/tableau-de-bord.js";
 
@@ -44,6 +45,7 @@ const routeur = new Routeur()
   .ajouter("/stock", "stock", vueStock)
   .ajouter("/tableau-de-bord", "tableau", vueTableauDeBord)
   .ajouter("/labo", "labo", vueLabo)
+  .ajouter("/labo/qualite", "labo", vueQualiteIA)
   .ajouter("/donnees", "donnees", vueDonnees);
 
 function entete(contexte: Contexte, auChangementVendeur: () => void, seDeconnecter: () => void) {

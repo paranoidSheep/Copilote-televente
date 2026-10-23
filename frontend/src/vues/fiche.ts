@@ -232,7 +232,7 @@ export const vueFiche: Vue = async (cible, parametres, contexte) => {
           formulaireCompteRendu(fiche, contexte.session.utilisateur.nom_affiche, () => undefined),
           appelsPrecedents(fiche),
           fiche.garde_fous.length
-            ? repliable(`Corrections automatiques (${fiche.garde_fous.length})`, h("ul", null, fiche.garde_fous.map((g) => h("li", { classe: "petit" }, g))))
+            ? repliable(`Corrections automatiques (${fiche.garde_fous.length})`, h("ul", null, fiche.garde_fous.map((g) => h("li", { classe: "petit" }, g.message))))
             : null,
           fiche.trace ? repliable("Coulisses de l'IA", traceExecution(fiche.trace)) : null,
           repliable("Version texte", h("pre", { classe: "code" }, fiche.texte)),

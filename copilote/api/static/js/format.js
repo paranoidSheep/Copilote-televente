@@ -63,5 +63,16 @@ export const LIBELLES = {
         3: "Habituel",
     },
     etape: { appel_llm: "🧠", outil: "🔧", garde_fou: "🛡️" },
+    correction: {
+        produit_inconnu: "Produit inventé écarté",
+        offre_refusee: "Offre refusée récemment retirée",
+        remise_plafonnee: "Remise ramenée au maximum",
+        selection_limitee: "Sélection trop longue",
+        stock_complete: "Stock complété par les analyses",
+        accroche_retiree: "Accroche vantant une offre retirée",
+        accroches_limitees: "Accroches trop nombreuses",
+        accroches_completees: "Accroches complétées",
+        rappel_ajoute: "Rappel promis oublié",
+    },
 };
 export const jours = (liste) => (liste.length ? liste.join(", ") : "sans jour fixe");

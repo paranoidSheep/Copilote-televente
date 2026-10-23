@@ -27,7 +27,8 @@ régulier du client, à prix plein.
 - Ne repropose pas en stock ou en suggestion un produit listé dans codes_refuses_recemment. \
 Si le client a demandé un rappel, mentionne-le dans les points d'attention et ouvre l'accroche en conséquence.
 - Sélectionne l'essentiel : au plus 5 produits manquants (les plus importants), 2 à 4 produits à \
-écouler (les plus utiles à CE client et à son activité), 0 à 3 suggestions.
+écouler (les plus utiles à CE client et à son activité), 0 à 3 suggestions. Parmi les produits à \
+écouler, un lot urgent (DLC très proche) d'un produit que le client achète déjà passe en premier.
 - resume_habitudes : 2 ou 3 phrases factuelles (rythme et jours de commande, panier moyen, produits \
 phares, tendance). Montants en euros HT, au format français.
 - Commentaires et arguments : une phrase courte et concrète, utile au téléphone, liée à l'activité du \

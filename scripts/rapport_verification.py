@@ -5,7 +5,7 @@
 
 Contrôles : lint et formatage (ruff), typage strict (mypy), tests et couverture
 (pytest), cassettes de l'IA simulée, types TypeScript, contrat du datahub,
-compilation du frontend.
+banc d'évaluation de la qualité des fiches, compilation du frontend.
 L'option --capture enregistre une image de la page avec Chromium (si disponible).
 """
 
@@ -35,6 +35,7 @@ class Controle:
     nom: str
     commande: list[str]
     dossier: Path = RACINE
+    ligne_resume: str = r"\d+ (passed|failed)"  # motif de la ligne à afficher (par défaut : bilan pytest)
 
 
 @dataclass(frozen=True)
@@ -51,7 +52,7 @@ def executer(controle: Controle) -> tuple[Resultat, str]:
     sortie = (processus.stdout + processus.stderr).strip()
     lignes = [l for l in sortie.splitlines() if l.strip()]
     # Pour pytest, la ligne utile est le bilan (« 164 passed in 15.9s »), pas la dernière ligne de couverture.
-    bilan = next((l for l in reversed(lignes) if re.search(r"\d+ (passed|failed)", l)), None)
+    bilan = next((l for l in reversed(lignes) if re.search(controle.ligne_resume, l)), None)
     derniere = bilan or (lignes[-1] if lignes else "(aucune sortie)")
     return Resultat(controle.nom, processus.returncode == 0, time.perf_counter() - debut, derniere), sortie
 
@@ -141,6 +142,14 @@ def main() -> int:
             Controle("Cassettes de l'IA simulée", [python, "-m", "scripts.cassettes", "verifier"]),
             Controle("Types TypeScript à jour", [python, "-m", "scripts.generer_types_ts", "--verifier"]),
             Controle("Contrat du datahub à jour", [python, "-m", "scripts.exporter_contrat_datahub", "--verifier"]),
+            Controle(
+                "Banc d'évaluation IA (score ≥ 85)",
+                [
+                    *(python, "-m", "scripts.evaluer", "--redacteurs", "simule,repli", "--score-minimum", "85"),
+                    *("--isole", "--sortie", str(Path(temporaire) / "evaluations")),
+                ],
+                ligne_resume=r"IA simulée\s+score",
+            ),
         ]
         if shutil.which("tsc"):
             controles.append(

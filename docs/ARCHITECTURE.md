@@ -5,7 +5,7 @@ Ce document décrit l'organisation du code, les choix de conception et le parcou
 ## Principes
 
 1. **Couches à dépendances descendantes.** Une couche n'importe que les couches inférieures :
-   `domaine` ← `datahub`, `journal`, `comptes` ← `analyses` ← `diagnostic`, `fiche` ← `agent` ← `services` ← `application` ← `api`.
+   `domaine` ← `datahub`, `journal`, `comptes` ← `analyses` ← `diagnostic`, `fiche` ← `agent`, `evaluation` ← `services` ← `application` ← `api`.
 2. **Les calculs sont purs.** Les analyses prennent un `Referentiel` (instantané immuable des données) et renvoient des résultats typés. Elles ne font aucun accès réseau ni aucune écriture. On les teste avec des données construites à la main.
 3. **Un seul endroit pour assembler.** `copilote/application.py` choisit les implémentations concrètes : source, stockage, fournisseurs d'IA, horloge. Les tests y injectent les leurs, sans « monkeypatch ».
 4. **Typage strict partout.**
@@ -54,6 +54,19 @@ GET /admin/diagnostic                           (ou python -m copilote.diagnosti
 
 Le simulateur (`datahub/simulateur.py`) est l'implémentation de référence du contrat REST : son schéma OpenAPI est exporté dans `docs/contrat-datahub.json`, et les tests vérifient que `HttpDataSource` → réseau → simulateur restitue exactement les données du mock et produit les mêmes fiches.
 
+## Banc d'évaluation
+
+```
+POST /labo/evaluations {redacteurs, clients}      (ou python -m scripts.evaluer)
+  └─ services/evaluation.py ServiceEvaluation     une campagne à la fois, en arrière-plan, 4 fiches en parallèle
+     ├─ ServiceFiches.produire(client, rédacteur)  hors cache : fiche + contexte d'analyse + durée
+     ├─ evaluation.evaluer_fiche()                 fidélité (corrections typées), couverture (signaux), format
+     ├─ evaluation.synthetiser()                   moyennes, défauts, latence p50/p95, jetons, coût estimé
+     └─ DepotEvaluationsSQLite                     historique complet, avec l'empreinte du prompt
+```
+
+Les critères sont des fonctions pures, sans IA juge : un même lot de fiches donne toujours la même note.
+
 ## Fournisseurs de LLM
 
 Le contrat se trouve dans `agent/llm/types.py` :
@@ -84,6 +97,7 @@ Pour ajouter un fournisseur, par exemple un modèle hébergé en interne, il suf
 | Clients, produits, commandes, stock | ERP | Datahub (ou mock JSON) | **Jamais** |
 | Comptes-rendus d'appels | Copilote | SQLite local (`var/journal.sqlite3`) | Oui, uniquement ici |
 | Comptes utilisateurs | Copilote | SQLite local (`var/utilisateurs.sqlite3`) | Oui (administration) |
+| Campagnes d'évaluation | Copilote | SQLite local (`var/evaluations.sqlite3`) et rapports `var/evaluations/` | Oui (labo, `scripts.evaluer`) |
 | Fiches générées | Copilote | Cache mémoire par (client, jour, mode) | Invalidé à chaque compte-rendu du client |
 | Instantané `Referentiel` | Copilote | Mémoire, durée `CACHE_SECONDES` | — |
 
@@ -100,7 +114,8 @@ Pour ajouter un fournisseur, par exemple un modèle hébergé en interne, il suf
 | Besoin | Fichier |
 |---|---|
 | Changer un seuil ou une remise | `copilote/analyses/regles.py` |
-| Modifier les consignes données à l'IA | `copilote/agent/prompts.py` |
+| Modifier les consignes données à l'IA | `copilote/agent/prompts.py`, puis `python -m scripts.evaluer --redacteurs anthropic` pour mesurer l'effet |
+| Ajouter un critère d'évaluation | `copilote/evaluation/criteres.py` |
 | Ajouter un outil pour l'IA | `copilote/agent/outils.py` (+ une analyse dans `copilote/analyses/`) |
 | Ajouter un garde-fou | `copilote/fiche/assemblage.py` |
 | Brancher le datahub | `copilote/datahub/http.py` (voir le README et `docs/CONTRAT-DATAHUB.md`) |

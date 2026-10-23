@@ -31,6 +31,8 @@ jobs:
         run: python -m scripts.generer_types_ts --verifier
       - name: Contrat d'interface du datahub à jour
         run: python -m scripts.exporter_contrat_datahub --verifier
+      - name: Banc d'évaluation de la qualité des fiches (IA simulée et repli)
+        run: python -m scripts.evaluer --redacteurs simule,repli --isole --score-minimum 85 --sortie "$RUNNER_TEMP/evaluations"
 
   frontend:
     name: TypeScript (compilation stricte)

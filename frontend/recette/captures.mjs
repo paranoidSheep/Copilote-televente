@@ -116,6 +116,39 @@ const scenarios = {
     await vendeuse.waitForSelector(".message-erreur");
     await capture(vendeuse, "06-donnees-refusees-televendeuse", false);
   },
+
+  // Banc d'évaluation, première campagne lancée depuis l'interface.
+  async "etape-3"() {
+    const bureau = await page(BUREAU);
+    await connecter(bureau, "responsable");
+    await bureau.goto(base + "/#/labo/qualite");
+    await bureau.waitForSelector("text=Lancer l'évaluation");
+    await capture(bureau, "01-qualite-ia-avant-evaluation", false);
+    await bureau.click("text=Lancer l'évaluation");
+    await bureau.waitForSelector("text=Évaluation en cours");
+    await bureau.waitForTimeout(1500);
+    await capture(bureau, "02-evaluation-en-cours", false);
+    await bureau.waitForSelector(".score-redacteur", { timeout: 120000 });
+  },
+
+  // Après une seconde campagne (nouvelle version du prompt) : historique et détail.
+  async "etape-3-historique"() {
+    const bureau = await page(BUREAU);
+    await connecter(bureau, "responsable");
+    await bureau.goto(base + "/#/labo/qualite");
+    await bureau.waitForSelector(".score-redacteur", { timeout: 30000 });
+    await capture(bureau, "03-qualite-ia-resultats");
+    await bureau.locator("details.regle summary").first().click();
+    await captureElement(bureau, "section.carte:has(details.regle)", "04-detail-par-client");
+    await captureElement(bureau, "section.carte:has(.barres-h)", "05-historique-versions-du-prompt");
+
+    const mobile = await page(MOBILE);
+    await connecter(mobile, "responsable");
+    await mobile.goto(base + "/#/labo/qualite");
+    await mobile.waitForSelector(".score-redacteur", { timeout: 30000 });
+    await mobile.locator(".score-redacteur").first().scrollIntoViewIfNeeded();
+    await capture(mobile, "06-qualite-ia-mobile", false);
+  },
 };
 
 try {

@@ -116,6 +116,11 @@ class Config:
         return self.chemin_journal_force or self.dossier_donnees / "journal.sqlite3"
 
     @property
+    def chemin_evaluations(self) -> Path:
+        """Historique du banc d'évaluation de l'IA."""
+        return self.dossier_donnees / "evaluations.sqlite3"
+
+    @property
     def chemin_utilisateurs(self) -> Path:
         """Comptes utilisateurs du copilote."""
         return self.dossier_donnees / "utilisateurs.sqlite3"

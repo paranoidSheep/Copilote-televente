@@ -6,8 +6,8 @@ Ce plan est suivi au fil de l'eau : chaque case est cochée quand l'élément es
 |---|---|---|
 | 1 | Prêt pour le VPS : conteneur, HTTPS, comptes utilisateurs | ✅ livrée |
 | 2 | Brancher le datahub sans attendre : simulateur REST et contrôle qualité des données | ✅ livrée |
-| 3 | Mesurer la qualité de l'IA : banc d'évaluation | ⏳ en cours |
-| 4 | La journée du télévendeur : mode tournée, rappels, apprentissage des retours | à faire |
+| 3 | Mesurer la qualité de l'IA : banc d'évaluation | ✅ livrée |
+| 4 | La journée du télévendeur : mode tournée, rappels, apprentissage des retours | ⏳ en cours |
 
 ---
 
@@ -51,16 +51,25 @@ Ce plan est suivi au fil de l'eau : chaque case est cochée quand l'élément es
 
 **Pourquoi.** Avant de passer à Claude en production, et à chaque modification du prompt, il faut pouvoir mesurer objectivement la qualité des fiches, et non en juger « à l'œil ».
 
-- [ ] Critères mesurés par fiche :
+- [x] Critères mesurés par fiche :
   - corrections des garde-fous ;
   - couverture des signaux clés (décrochés, lots urgents habituels, rappel) ;
   - format (2 ou 3 accroches, contact cité, longueur) ;
   - latence, jetons et coût estimé
-- [ ] Banc d'évaluation sur tous les clients, par rédacteur (`simule`, `repli`, `anthropic` si une clé est présente)
-- [ ] Historique des évaluations (SQLite), pour comparer les versions du prompt
-- [ ] Commande `python -m scripts.evaluer` et rapport (JSON et Markdown)
-- [ ] Écran « Qualité IA » dans le labo : scores, comparaison des rédacteurs, détail par client
-- [ ] Tests et captures
+- [x] Banc d'évaluation sur tous les clients, par rédacteur (`simule`, `repli`, `anthropic` si une clé est présente)
+- [x] Historique des évaluations (SQLite), pour comparer les versions du prompt
+- [x] Commande `python -m scripts.evaluer` et rapport (JSON et Markdown)
+- [x] Écran « Qualité IA » dans le labo : scores, comparaison des rédacteurs, détail par client
+- [x] Tests et captures
+
+**Livré.**
+- **Garde-fous typés.** Chaque correction (`TypeCorrection`) est pondérée selon sa gravité ; les critères sont des fonctions pures, sans IA juge.
+- **Banc.** Les campagnes tournent en arrière-plan, quatre fiches à la fois, hors cache. Elles sont historisées avec l'empreinte du prompt. Rapport Markdown, garde-fou en CI (`--score-minimum 85`).
+- **Ce que le banc a révélé, puis corrigé :**
+  - le repli ne saluait pas l'interlocuteur quand le client n'avait aucun produit en retard ;
+  - quand un garde-fou retirait une offre refusée, l'accroche qui la vantait restait en place : le télévendeur aurait annoncé au téléphone une remise sur un produit refusé. Un nouveau garde-fou retire désormais ces accroches ;
+  - l'IA laisse souvent de côté les lots à DLC imminente d'un produit que le client achète. Le prompt les rend désormais prioritaires ; l'effet est à mesurer avec Claude, puisque l'IA simulée rejoue des réponses enregistrées.
+- **Captures.** Elles sont dans [`captures/etape-3/`](captures/etape-3/).
 
 ## Étape 4 — La journée du télévendeur
 
@@ -82,3 +91,4 @@ Ce plan est suivi au fil de l'eau : chaque case est cochée quand l'élément es
 | 23/10/2026 | — | Plan rédigé |
 | 23/10/2026 | 1 | Docker + Caddy HTTPS, comptes et rôles, sessions signées, droits, journaux JSON, sauvegardes, guide VPS, 164 tests |
 | 23/10/2026 | 2 | Simulateur REST, contrat OpenAPI, mise à l'écart des données inexploitables, diagnostic (écran, API, CLI), profil Docker `simulateur`, 208 tests |
+| 23/10/2026 | 3 | Corrections typées, banc d'évaluation (critères, historique, écran Qualité IA, CLI, CI), 2 défauts corrigés et 1 amélioration du prompt, 233 tests |

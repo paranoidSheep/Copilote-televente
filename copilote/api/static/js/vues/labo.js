@@ -3,6 +3,7 @@ import { api } from "../api.js";
 import { badge, bouton, carte, chargement, messageErreur, repliable, titrePage, traceExecution } from "../composants.js";
 import { h, remplacer } from "../dom.js";
 import { euros, LIBELLES } from "../format.js";
+import { ongletsLabo } from "./onglets-labo.js";
 const json = (valeur) => JSON.stringify(valeur, null, 2);
 function colonneFiche(mode, fiche) {
     return carte(LIBELLES.modeLLM[mode], [
@@ -61,6 +62,6 @@ export const vueLabo = async (cible, parametres, _contexte) => {
             remplacer(zoneAgent, messageErreur(erreur));
         }
     };
-    remplacer(cible, titrePage("Laboratoire", "Inspecter l'agent IA : ce qu'il voit, ce qu'il produit, et la comparaison des rédacteurs"), carte("Client à analyser", h("div", { classe: "formulaire" }, h("div", { classe: "colonnes" }, choixClient, champProduit), h("div", { classe: "ligne" }, bouton("Exécuter les outils", executerOutils, "principal"), bouton("Comparer les rédacteurs", comparer), bouton("Configuration de l'agent", afficherAgent), h("a", { classe: "bouton discret", attrs: { href: "/docs", target: "_blank", rel: "noopener" } }, "Documentation de l'API ↗")))), h("div", { attrs: { style: "height:12px" } }), zoneComparaison, h("div", { classe: "grille deux", attrs: { style: "margin-top:12px" } }, h("div", { classe: "pile" }, zoneOutils), h("div", { classe: "pile" }, zoneAgent)));
+    remplacer(cible, ongletsLabo("agent"), titrePage("Laboratoire", "Inspecter l'agent IA : ce qu'il voit, ce qu'il produit, et la comparaison des rédacteurs"), carte("Client à analyser", h("div", { classe: "formulaire" }, h("div", { classe: "colonnes" }, choixClient, champProduit), h("div", { classe: "ligne" }, bouton("Exécuter les outils", executerOutils, "principal"), bouton("Comparer les rédacteurs", comparer), bouton("Configuration de l'agent", afficherAgent), h("a", { classe: "bouton discret", attrs: { href: "/docs", target: "_blank", rel: "noopener" } }, "Documentation de l'API ↗")))), h("div", { attrs: { style: "height:12px" } }), zoneComparaison, h("div", { classe: "grille deux", attrs: { style: "margin-top:12px" } }, h("div", { classe: "pile" }, zoneOutils), h("div", { classe: "pile" }, zoneAgent)));
     await executerOutils();
 };

@@ -69,5 +69,10 @@ export const api = {
         agent: (clientId) => requete(url("/labo/agent", { client_id: clientId })),
         outils: (clientId, produit) => requete(url(`/labo/clients/${id(clientId)}/outils`, { produit })),
         comparaison: (clientId) => requete(`/labo/clients/${id(clientId)}/comparaison`),
+        evaluations: () => requete("/labo/evaluations"),
+        evaluation: (campagneId) => requete(`/labo/evaluations/${campagneId}`),
+        suiviEvaluation: () => requete("/labo/evaluations/suivi"),
+        lancerEvaluation: (demande) => requete("/labo/evaluations", json("POST", demande)),
+        rapportEvaluation: (campagneId) => `/labo/evaluations/${campagneId}/rapport.md`,
     },
 };

@@ -59,6 +59,26 @@ class Redaction(_Strict):
 # ---------------------------------------------------------------------------------
 
 
+class TypeCorrection(StrEnum):
+    """Nature d'une correction appliquée par les garde-fous à la rédaction de l'IA."""
+
+    PRODUIT_INCONNU = "produit_inconnu"  # code absent des analyses : invention écartée
+    OFFRE_REFUSEE = "offre_refusee"  # offre refusée récemment par le client, retirée
+    REMISE_PLAFONNEE = "remise_plafonnee"  # remise ramenée au maximum autorisé
+    SELECTION_LIMITEE = "selection_limitee"  # trop de produits proposés
+    STOCK_COMPLETE = "stock_complete"  # sélection de stock complétée depuis les analyses
+    ACCROCHE_RETIREE = "accroche_retiree"  # accroche vantant une offre retirée
+    ACCROCHES_LIMITEES = "accroches_limitees"
+    ACCROCHES_COMPLETEES = "accroches_completees"
+    RAPPEL_AJOUTE = "rappel_ajoute"  # rappel promis au client absent des points d'attention
+
+
+class Correction(_Strict):
+    type: TypeCorrection
+    message: str
+    codes: list[str] = Field(default=[], description="Produits concernés, s'il y a lieu")
+
+
 class ModeFiche(StrEnum):
     IA = "ia"  # rédigée par Claude
     IA_SIMULEE = "ia_simulee"  # rédaction IA rejouée (démonstration sans clé)
@@ -117,6 +137,6 @@ class Fiche(BaseModel):
     points_attention: list[str]
     appels_precedents: HistoriqueAppels
     panier: PanierPropose
-    garde_fous: list[str] = Field(default=[], description="Corrections appliquées à la rédaction")
+    garde_fous: list[Correction] = Field(default=[], description="Corrections appliquées à la rédaction")
     trace: TraceExecution | None = None
     texte: str = ""

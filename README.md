@@ -69,8 +69,11 @@ flowchart LR
 3. L'**assemblage** construit la fiche finale et applique des **garde-fous**. Chaque correction est consignée et visible dans la fiche (« Corrections automatiques ») :
    - un produit cité par l'IA mais absent des analyses est écarté ;
    - une remise supérieure à la remise suggérée est ramenée à ce plafond ;
-   - une offre (stock ou suggestion) refusée par le client dans les 14 derniers jours n'est pas reproposée ;
-   - si ces corrections vident la sélection, elle est complétée à partir des analyses.
+   - une offre (stock ou suggestion) refusée par le client dans les 14 derniers jours n'est pas reproposée, et une accroche qui la vante est retirée ;
+   - si ces corrections vident la sélection, elle est complétée à partir des analyses ;
+   - un rappel promis au client figure toujours dans les points d'attention.
+
+   Les corrections sont **typées** (`TypeCorrection`) : le banc d'évaluation les compte par catégorie.
 4. Les outils sont **verrouillés sur le client** de la fiche : l'IA ne peut pas lire les données d'un autre client.
 5. La **trace** de chaque rédaction est conservée et affichée dans « Coulisses de l'IA » : appels au modèle, appels d'outils, durées et jetons.
 
@@ -97,6 +100,29 @@ Le fournisseur simulé suit le même protocole que l'API. Il exige notamment le 
 
 Il est testé à travers le vrai SDK, avec un transport HTTP simulé : le corps des requêtes et la traduction des erreurs (429, 401, 5xx) sont vérifiés.
 
+### Mesurer la qualité : le banc d'évaluation
+
+Avant de passer à Claude en production, et à chaque modification du prompt, le **banc d'évaluation** (`copilote/evaluation/`) rédige la fiche de chaque client avec chaque rédacteur. Il note chaque fiche sur des critères **vérifiables**, sans IA juge :
+
+| Critère | Poids | Ce qui est mesuré |
+|---|---|---|
+| Fidélité | 40 % | Corrections des garde-fous, pondérées par gravité (produit inventé, remise excessive, offre refusée reproposée, rappel oublié…), et remises annoncées au client sans avoir été proposées |
+| Couverture | 35 % | Signaux clés repris par le rédacteur lui-même : les 3 produits habituels les plus en retard, les lots urgents d'un produit que le client achète, le rappel promis |
+| Format | 25 % | Contact nommé, accroches courtes (15 s à l'oral), vouvoiement, résumé en 2 ou 3 phrases, chaque proposition argumentée |
+
+S'y ajoutent la latence, les jetons et le **coût estimé** au tarif public du modèle (projeté pour l'IA simulée). Chaque campagne est enregistrée avec l'**empreinte du prompt** (prompt système et outils). On peut ainsi comparer deux versions du prompt, dans l'écran **Labo › Qualité IA** ou avec la commande :
+
+```bash
+python -m scripts.evaluer                                    # tous les rédacteurs, rapports JSON et Markdown
+python -m scripts.evaluer --redacteurs anthropic             # Claude seul (facturé : coût estimé dans le rapport)
+python -m scripts.evaluer --redacteurs simule,repli --isole --score-minimum 85   # garde-fou de la CI
+```
+
+À savoir pour lire les scores :
+- **Le repli obtient 100 par construction** : il est bâti sur les analyses. Le banc mesure les erreurs vérifiables, pas la qualité commerciale du discours, qui reste l'apport de l'IA.
+- **L'IA simulée rejoue des réponses enregistrées.** Elle ne réagit donc ni au prompt ni à l'historique d'appels. Avec un journal vide (`--isole`, utilisé par la CI), elle obtient 90 ; avec le journal de démonstration (refus, rappels), les garde-fous la corrigent souvent et son score baisse. L'effet d'une modification du prompt se mesure avec Claude.
+- Les fiches sont rédigées **hors cache** : une évaluation ne change jamais les fiches servies aux télévendeurs.
+
 ## Architecture
 
 Le code est organisé en couches : chaque couche ne dépend que des couches au-dessus d'elle dans ce tableau. Le détail est dans [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
@@ -108,9 +134,10 @@ Le code est organisé en couches : chaque couche ne dépend que des couches au-d
 | `copilote/journal` | Comptes-rendus d'appels : modèles, stockage SQLite **local**, statistiques |
 | `copilote/analyses` | Calculs métier purs sur un `Referentiel` (instantané indexé, débarrassé des données inexploitables). Toutes les règles sont dans `regles.py`. |
 | `copilote/diagnostic` | Diagnostic des données : mesures de connexion, vérification du contrat d'interface, règles de qualité |
+| `copilote/evaluation` | Banc d'évaluation des fiches : critères, synthèse par rédacteur, tarifs, historique SQLite, rapport Markdown |
 | `copilote/fiche` | Modèle de la fiche, assemblage avec garde-fous, repli sans IA, panier proposé, rendu texte |
 | `copilote/agent` | Outils exposés au LLM, boucle de rédaction, trace, fournisseurs (`llm/`) |
-| `copilote/services` | Orchestration : fiches (choix du rédacteur, repli, cache), journal, pilotage, diagnostic |
+| `copilote/services` | Orchestration : fiches (choix du rédacteur, repli, cache), journal, pilotage, diagnostic, évaluation |
 | `copilote/application.py` | Assemblage des composants à partir de la configuration (seul endroit qui choisit les implémentations) |
 | `copilote/api` | FastAPI : routeurs par domaine, traduction des erreurs, interface web |
 | `frontend/` | Interface en TypeScript strict, sans framework ni bundler, compilée dans `copilote/api/static/js` |
@@ -150,6 +177,7 @@ La documentation interactive est disponible sur `/docs`. Endpoints principaux :
 | GET | `/stock/plan-ecoulement` | Plan d'écoulement du stock |
 | GET | `/labo/agent`, `/labo/clients/{id}/outils`, `/labo/clients/{id}/comparaison` | Inspection de l'agent |
 | GET | `/admin/diagnostic` | Diagnostic des données : connexion, contrat d'interface, qualité |
+| POST, GET | `/labo/evaluations`, `/labo/evaluations/suivi`, `/labo/evaluations/{id}`, `/labo/evaluations/{id}/rapport.md` | Banc d'évaluation : lancement en arrière-plan, avancement, historique, détail et rapport |
 | POST | `/auth/connexion`, `/auth/deconnexion` | Ouverture et fermeture de session (cookie signé) |
 | GET | `/session` | Utilisateur connecté, droits, source de données, rédacteurs disponibles |
 | GET | `/sante` | Sonde publique de supervision (aucune donnée métier) |
@@ -184,7 +212,7 @@ Toutes les routes, sauf `/sante`, `/auth/*` et l'interface, exigent une session.
 ## Qualité
 
 ```bash
-make verifier   # ruff, mypy --strict, tests et couverture, cassettes, types TypeScript, contrat du datahub
+make verifier   # ruff, mypy --strict, tests et couverture, cassettes, types TypeScript, contrat du datahub, banc d'évaluation
 make front      # régénère les types puis compile le frontend (nécessite Node.js)
 python -m scripts.rapport_verification --capture var/verification.png   # rapport HTML + capture
 ```
@@ -207,6 +235,7 @@ Les tests sont organisés par couche :
 | `test_comptes.py` | Mots de passe, sessions signées, blocage, droits par rôle, en-têtes de sécurité, administration, sauvegardes |
 | `test_simulateur.py` | Simulateur du datahub, contrat exporté, chemin `DATASOURCE=http` de bout en bout sur un vrai serveur HTTP |
 | `test_diagnostic.py` | Mise à l'écart des données inexploitables, règles de qualité, contrat non respecté, source en panne, API, ligne de commande |
+| `test_evaluation.py` | Critères du banc, tarifs, synthèse, campagnes (synchrones et en arrière-plan), historique SQLite, API, ligne de commande |
 
 ## Brancher le vrai datahub
 

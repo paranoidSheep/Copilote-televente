@@ -22,6 +22,7 @@ from copilote.datahub import DataSource
 from copilote.datahub.mock import MockDataSource
 from copilote.datahub.simulateur import creer_simulateur
 from copilote.domaine import Client, ClientIntrouvable, Commande, Famille, LigneCommande, Lot, Produit
+from copilote.evaluation import DepotEvaluationsMemoire
 from copilote.horloge import HorlogeFixe
 from copilote.journal import DepotMemoire
 
@@ -212,6 +213,7 @@ def application(
         depot_journal=DepotMemoire(),
         horloge=horloge,
         depot_utilisateurs=depot_utilisateurs,
+        depot_evaluations=DepotEvaluationsMemoire(),
     )
 
 

@@ -3,15 +3,18 @@
 Principe : l'IA rédige, les analyses font foi.
 - un code produit absent des analyses est écarté (pas d'invention possible) ;
 - une remise supérieure à la remise suggérée est ramenée à ce maximum ;
-- une offre (stock, suggestion) refusée récemment par le client n'est pas reproposée ;
+- une offre (stock, suggestion) refusée récemment par le client n'est pas reproposée, et une
+  accroche qui la vante est retirée ;
 - si ces corrections vident la sélection de stock, elle est complétée depuis les analyses ;
 - un rappel promis au client figure toujours dans les points d'attention ;
 - prix, DLC, quantités et indicateurs viennent exclusivement des analyses.
-Chaque correction est consignée dans `Fiche.garde_fous`, pour la transparence.
+Chaque correction est consignée dans `Fiche.garde_fous`, typée (voir `TypeCorrection`) : elle
+est affichée pour la transparence et comptée par le banc d'évaluation de la qualité de l'IA.
 """
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -21,6 +24,7 @@ from copilote.analyses import ContexteClient, ProduitManquant, PropositionStock,
 
 from . import formatage as fmt
 from .modeles import (
+    Correction,
     Fiche,
     ManquantFiche,
     ModeFiche,
@@ -30,6 +34,7 @@ from .modeles import (
     RedactionSuggestion,
     StockFiche,
     SuggestionFiche,
+    TypeCorrection,
 )
 from .panier import construire_panier
 from .rendu import fiche_en_texte
@@ -46,18 +51,57 @@ class _AvecCode(Protocol):
     def code(self) -> str: ...
 
 
+class _AvecLibelle(Protocol):
+    @property
+    def libelle(self) -> str: ...
+
+
+LONGUEUR_MIN_NOM = 6  # en dessous (« pain », « lait »), un nom est trop générique pour conclure
+MOTS_DE_LIAISON = {"de", "du", "des", "à", "au", "aux", "en", "et", "la", "le", "les"}
+
+
+def noms_usuels(libelle: str) -> list[str]:
+    """Façons de nommer un produit au téléphone, de la plus précise à la plus courte.
+
+    « Cordon bleu de volaille, carton de 40 » -> [« cordon bleu de volaille », « cordon bleu », « cordon »]
+    (sans conditionnement ni mot de liaison final, au moins `LONGUEUR_MIN_NOM` caractères).
+    """
+    mots: list[str] = []
+    for mot in libelle.lower().replace(",", " , ").split():
+        if mot == "," or any(c.isdigit() for c in mot):
+            break
+        mots.append(mot)
+    noms: list[str] = []
+    for taille in range(len(mots), 0, -1):
+        prefixe = mots[:taille]
+        while prefixe and prefixe[-1] in MOTS_DE_LIAISON:
+            prefixe = prefixe[:-1]
+        nom = " ".join(prefixe)
+        if len(nom) >= LONGUEUR_MIN_NOM and nom not in noms:
+            noms.append(nom)
+    return noms
+
+
+def mentionne(texte: str, nom: str) -> bool:
+    return re.search(rf"\b{re.escape(nom)}\b", texte.lower()) is not None
+
+
 @dataclass
 class _Assembleur:
     """Applique les garde-fous et consigne chaque correction."""
 
     contexte: ContexteClient
-    garde_fous: list[str] = field(default_factory=list)
+    garde_fous: list[Correction] = field(default_factory=list)
+    retires: dict[str, str] = field(default_factory=dict)  # offres retirées : code -> libellé
+
+    def corriger(self, type_: TypeCorrection, message: str, codes: Sequence[str] = ()) -> None:
+        self.garde_fous.append(Correction(type=type_, message=message, codes=list(codes)))
 
     @property
     def refuses(self) -> set[str]:
         return set(self.contexte.appels.codes_refuses_recemment)
 
-    def selectionner[R: _AvecCode, Ref, Sortie](
+    def selectionner[R: _AvecCode, Ref: _AvecLibelle, Sortie](
         self,
         rubrique: str,
         choix_ia: Sequence[R],
@@ -76,13 +120,16 @@ class _Assembleur:
             vus.add(choix.code)
             reference = references.get(choix.code)
             if reference is None:
-                self.garde_fous.append(f"{rubrique} : produit {choix.code} ignoré (absent des données)")
+                message = f"{rubrique} : produit {choix.code} ignoré (absent des données)"
+                self.corriger(TypeCorrection.PRODUIT_INCONNU, message, [choix.code])
                 continue
             if exclure_refus and choix.code in self.refuses:
-                self.garde_fous.append(f"{rubrique} : produit {choix.code} retiré (refusé récemment par le client)")
+                message = f"{rubrique} : produit {choix.code} retiré (refusé récemment par le client)"
+                self.corriger(TypeCorrection.OFFRE_REFUSEE, message, [choix.code])
+                self.retires[choix.code] = reference.libelle
                 continue
             if len(retenus) == maximum:
-                self.garde_fous.append(f"{rubrique} : sélection limitée à {maximum} produits")
+                self.corriger(TypeCorrection.SELECTION_LIMITEE, f"{rubrique} : sélection limitée à {maximum} produits")
                 break
             retenus.append(construire(choix, reference))
         return retenus
@@ -93,9 +140,8 @@ class _Assembleur:
     def stock(self, choix: RedactionStock, ref: PropositionStock) -> StockFiche:
         remise = max(0, min(choix.remise_pct, ref.remise_suggeree_pct))
         if remise != choix.remise_pct:
-            self.garde_fous.append(
-                f"Stock : remise sur {ref.code} ramenée de {choix.remise_pct} % à {remise} % (maximum autorisé)"
-            )
+            message = f"Stock : remise sur {ref.code} ramenée de {choix.remise_pct} % à {remise} % (maximum autorisé)"
+            self.corriger(TypeCorrection.REMISE_PLAFONNEE, message, [ref.code])
         quantites_habituelles = {p.code: p.quantite_habituelle for p in self.contexte.habitudes.produits_recurrents}
         return StockFiche(
             **ref.model_dump(),
@@ -119,10 +165,11 @@ class _Assembleur:
             : minimum - len(retenus)
         ]
         if candidats:
-            self.garde_fous.append(
+            message = (
                 f"Stock : {fmt.pluriel(len(candidats), 'produit')} ajouté(s) depuis les analyses "
                 "pour compléter la sélection"
             )
+            self.corriger(TypeCorrection.STOCK_COMPLETE, message, [p.code for p in candidats])
         return [
             self.stock(RedactionStock(code=p.code, remise_pct=p.remise_suggeree_pct, argument=argument_stock(p)), p)
             for p in candidats
@@ -134,7 +181,7 @@ class _Assembleur:
         rappel = self.contexte.appels.rappel_prevu
         if rappel is not None and not any("rappel" in p.lower() for p in points):
             points.insert(0, f"Le client a demandé à être rappelé le {fmt.date_longue(rappel)}.")
-            self.garde_fous.append("Points d'attention : rappel promis ajouté")
+            self.corriger(TypeCorrection.RAPPEL_AJOUTE, "Points d'attention : rappel promis ajouté")
         return points
 
     def suggestion(self, choix: RedactionSuggestion, ref: SuggestionCroisee) -> SuggestionFiche:
@@ -148,15 +195,27 @@ class _Assembleur:
         suggestions: list[SuggestionFiche],
     ) -> list[str]:
         accroches = [a.strip() for a in proposees if a.strip()]
+        # Une accroche qui vante une offre retirée ferait reproposer au téléphone un produit refusé.
+        # Un nom partagé avec un produit conservé (« escalope ») ne suffit pas à conclure.
+        libelles = [p.libelle for p in manquants] + [p.libelle for p in stock] + [p.libelle for p in suggestions]
+        conserves = {n for libelle in libelles for n in noms_usuels(libelle)}
+        noms_retires = {code: [n for n in noms_usuels(l) if n not in conserves] for code, l in self.retires.items()}
+        for accroche in list(accroches):
+            cites = [code for code, noms in noms_retires.items() if any(mentionne(accroche, n) for n in noms)]
+            if cites:
+                accroches.remove(accroche)
+                message = f"Accroches : accroche retirée, elle proposait {', '.join(cites)} (refusé récemment)"
+                self.corriger(TypeCorrection.ACCROCHE_RETIREE, message, cites)
         if len(accroches) > MAX_ACCROCHES:
-            self.garde_fous.append(f"Accroches : limitées à {MAX_ACCROCHES}")
+            self.corriger(TypeCorrection.ACCROCHES_LIMITEES, f"Accroches : limitées à {MAX_ACCROCHES}")
             accroches = accroches[:MAX_ACCROCHES]
         if len(accroches) < 2:
             complements = accroches_gabarits(
                 self.contexte.habitudes, manquants, [(s, s.remise_pct) for s in stock], suggestions
             )
             ajout = [a for a in complements if a not in accroches][: 2 - len(accroches)]
-            self.garde_fous.append(f"Accroches : {fmt.pluriel(len(ajout), 'accroche')} ajoutée(s) automatiquement")
+            message = f"Accroches : {fmt.pluriel(len(ajout), 'accroche')} ajoutée(s) automatiquement"
+            self.corriger(TypeCorrection.ACCROCHES_COMPLETEES, message)
             accroches += ajout
         return accroches
 

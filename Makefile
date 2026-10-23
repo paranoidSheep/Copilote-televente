@@ -1,7 +1,7 @@
 # Raccourcis de développement. `make aide` liste les cibles.
 PYTHON ?= python3
 
-.PHONY: aide installer lancer demo tests qualite types front donnees cassettes contrat simulateur diagnostic verifier
+.PHONY: aide installer lancer demo tests qualite types front donnees cassettes contrat simulateur diagnostic evaluer verifier
 
 aide:  ## Liste les cibles
 	@grep -E '^[a-z]+:.*##' $(MAKEFILE_LIST) | awk -F':.*## ' '{printf "  %-12s %s\n", $$1, $$2}'
@@ -42,6 +42,10 @@ simulateur:  ## Lance le simulateur du datahub sur http://localhost:8100 (avec a
 diagnostic:  ## Diagnostic des données de la source configurée
 	$(PYTHON) -m copilote.diagnostic
 
+evaluer:  ## Banc d'évaluation de la qualité des fiches (rapports dans var/evaluations)
+	$(PYTHON) -m scripts.evaluer
+
 verifier: qualite tests cassettes  ## Tout ce que vérifie la CI côté Python
 	$(PYTHON) -m scripts.generer_types_ts --verifier
 	$(PYTHON) -m scripts.exporter_contrat_datahub --verifier
+	$(PYTHON) -m scripts.evaluer --redacteurs simule,repli --isole --score-minimum 85

@@ -103,7 +103,7 @@ def test_compte_rendu_invalide_la_fiche_et_alimente_les_garde_fous(application, 
     apres = application.fiches.generer("C010")
     assert apres is not avant  # le cache du client a été invalidé
     assert all(s.code != "FR007" for s in apres.stock_a_ecouler)  # offre refusée : non reproposée
-    assert any("FR007" in g for g in apres.garde_fous)
+    assert any("FR007" in g.message for g in apres.garde_fous)
     assert apres.appels_precedents.appels[0].produits_refuses == ["FR007"]
 
 

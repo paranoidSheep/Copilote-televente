@@ -148,7 +148,18 @@ docker compose exec copilote python -m copilote.diagnostic
 
 Code de sortie du diagnostic : `0` conforme, `1` corrections nécessaires, `2` lecture impossible (datahub injoignable, jeton refusé, réponse non conforme). Les anomalies listées sont à corriger dans l'ERP. En attendant, le copilote écarte automatiquement les enregistrements inexploitables (doublons, références orphelines, lots périmés…).
 
-## 9. Supervision et journaux
+## 9. Mesurer la qualité de l'IA
+
+Le banc d'évaluation note les fiches de tous les clients. Il se lance depuis **Labo › Qualité IA** (responsables), ou en ligne de commande :
+
+```bash
+docker compose exec copilote python -m scripts.evaluer                        # IA simulée et repli
+docker compose exec copilote python -m scripts.evaluer --redacteurs anthropic # Claude (nécessite ANTHROPIC_API_KEY, facturé)
+```
+
+Les campagnes sont conservées dans le volume (`/data/evaluations.sqlite3`, rapports dans `/data/evaluations/`). Avec Claude, prévoir quelques minutes et environ un centime de dollar par fiche : le coût exact estimé figure dans le rapport.
+
+## 10. Supervision et journaux
 
 ```bash
 docker compose logs -f copilote                                   # une ligne JSON par requête (utilisateur, route, statut, durée)

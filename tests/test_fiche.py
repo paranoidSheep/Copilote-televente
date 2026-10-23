@@ -5,10 +5,13 @@ from __future__ import annotations
 from datetime import date, datetime
 
 from copilote.analyses import construire_contexte
-from copilote.fiche import ModeFiche, Redaction, assembler_fiche, rediger_sans_ia
+from copilote.config import ModeLLM
+from copilote.fiche import ModeFiche, Redaction, TypeCorrection, assembler_fiche, rediger_sans_ia
 from copilote.fiche import formatage as fmt
-from copilote.journal import Issue, Origine
+from copilote.fiche.assemblage import noms_usuels
+from copilote.journal import Issue, NouveauCompteRendu, Origine, Reponse
 from tests.test_analyses import compte_rendu, refus
+from tests.test_services import ligne
 
 MAINTENANT = datetime(2026, 10, 23, 10, 30, 12, 345)
 
@@ -48,8 +51,10 @@ def test_produits_inventes_ecartes_et_remise_plafonnee(ref_simple):
     assert fiche.stock_a_ecouler[0].quantite_conseillee == 5  # quantité habituelle du client
     assert [s.code for s in fiche.suggestions] == ["P4"]
     assert fiche.genere_le.microsecond == 0
-    assert any("INVENTE" in g for g in fiche.garde_fous)
-    assert any("ramenée de 80 % à 30 %" in g for g in fiche.garde_fous)
+    assert any("INVENTE" in g.message for g in fiche.garde_fous)
+    assert any("ramenée de 80 % à 30 %" in g.message for g in fiche.garde_fous)
+    assert {g.type for g in fiche.garde_fous} >= {TypeCorrection.PRODUIT_INCONNU, TypeCorrection.REMISE_PLAFONNEE}
+    assert next(g for g in fiche.garde_fous if g.type is TypeCorrection.PRODUIT_INCONNU).codes == ["INVENTE"]
 
 
 def test_offres_refusees_retirees_et_stock_complete(ref_simple):
@@ -68,8 +73,10 @@ def test_offres_refusees_retirees_et_stock_complete(ref_simple):
     assert [m.code for m in fiche.produits_manquants] == ["P2"]  # un habituel n'est jamais masqué
     assert fiche.suggestions == []
     assert [s.code for s in fiche.stock_a_ecouler] == ["P1"]  # complété depuis les analyses
-    assert any("refusé récemment" in g for g in fiche.garde_fous)
-    assert any("ajouté(s) depuis les analyses" in g for g in fiche.garde_fous)
+    assert any("refusé récemment" in g.message for g in fiche.garde_fous)
+    assert any("ajouté(s) depuis les analyses" in g.message for g in fiche.garde_fous)
+    complement = next(g for g in fiche.garde_fous if g.type is TypeCorrection.STOCK_COMPLETE)
+    assert complement.codes and set(complement.codes) <= {s.code for s in fiche.stock_a_ecouler}
 
 
 def test_selection_vide_voulue_respectee(ref_simple):
@@ -135,3 +142,43 @@ def test_rappel_promis_toujours_mentionne(ref_simple):
     deja = redaction(points_attention=["Rappel promis pour ce matin."])
     fiche = assembler_fiche(contexte, deja, mode=ModeFiche.IA, genere_le=MAINTENANT)
     assert fiche.points_attention == ["Rappel promis pour ce matin."]
+
+
+def test_noms_usuels_d_un_produit():
+    assert noms_usuels("Cordon bleu de volaille, carton de 40") == ["cordon bleu de volaille", "cordon bleu", "cordon"]
+    assert noms_usuels("Ratatouille cuisinée 2,5 kg") == ["ratatouille cuisinée", "ratatouille"]
+    assert noms_usuels("Pain 400 g") == []  # trop générique pour conclure
+
+
+def test_accroche_vantant_une_offre_refusee_retiree(application):
+    """Cas réel : l'IA simulée vante la ratatouille (SG014) que le client vient de refuser."""
+    avant = application.fiches.produire("C019", ModeLLM.SIMULE).fiche
+    assert any("ratatouille" in a for a in avant.accroches)
+    application.journal.enregistrer(
+        NouveauCompteRendu(
+            client_id="C019",
+            televendeur="Julie Moreau",
+            issue=Issue.PAS_DE_BESOIN,
+            lignes=[ligne("SG014", Reponse.REFUSE)],
+        )
+    )
+    apres = application.fiches.produire("C019", ModeLLM.SIMULE).fiche
+    assert not any("ratatouille" in a for a in apres.accroches) and len(apres.accroches) >= 2
+    retrait = next(g for g in apres.garde_fous if g.type is TypeCorrection.ACCROCHE_RETIREE)
+    assert retrait.codes == ["SG014"]
+
+
+def test_nom_partage_avec_un_produit_conserve_ne_suffit_pas(ref_simple):
+    """« produit » désigne aussi les produits conservés : l'accroche n'est pas retirée à tort."""
+    crs = [compte_rendu("R1", 2, lignes=[refus("P4", Origine.SUGGESTION)])]
+    fiche = assembler_fiche(
+        construire_contexte(ref_simple, "R1", crs),
+        redaction(
+            stock_a_ecouler=[{"code": "P1", "remise_pct": 30, "argument": "x"}],  # « Produit P1 » est conservé
+            suggestions=[{"code": "P4", "argument": "x"}],
+            accroches=["Le produit P4 ?", "Autre chose ?"],
+        ),
+        mode=ModeFiche.IA,
+        genere_le=MAINTENANT,
+    )
+    assert fiche.accroches == ["Le produit P4 ?", "Autre chose ?"]
