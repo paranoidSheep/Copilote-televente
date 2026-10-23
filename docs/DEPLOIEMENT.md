@@ -73,7 +73,7 @@ docker compose exec copilote python -m copilote.admin desactiver julie.moreau
 | Rôle | Accès |
 |---|---|
 | `televendeur` | Sa file d'appels, toutes les fiches, ses comptes-rendus, ses résultats |
-| `responsable` | Toutes les files, statistiques globales, labo IA, diagnostic des données |
+| `responsable` | Toutes les files, statistiques globales, labo IA, écran « Données » (diagnostic) |
 | `admin` | Comme responsable |
 
 > Pour un télévendeur, le **nom affiché** doit être identique au champ « commercial » des clients dans l'ERP : c'est ce lien qui lui attribue sa file d'appels.
@@ -107,7 +107,48 @@ git pull
 docker compose up -d --build     # les données (volume) sont conservées
 ```
 
-## 8. Supervision et journaux
+## 8. Brancher le datahub
+
+### Essayer d'abord avec le simulateur
+
+Le simulateur du datahub tourne dans un conteneur à part, sur le réseau interne. Il permet de tester le chemin `DATASOURCE=http` de bout en bout, et de voir le diagnostic des données à l'œuvre. Dans `.env` :
+
+```bash
+DATASOURCE=http
+DATAHUB_URL=http://datahub-simulateur:8100
+DATAHUB_TOKEN=un-jeton-au-choix
+DATAHUB_DATE_REFERENCE=2026-10-23     # date du jeu de données fictif
+SIMULATEUR_OPTIONS=--anomalies        # facultatif : défauts de données réalistes
+```
+
+Puis :
+
+```bash
+docker compose --profile simulateur up -d
+docker compose exec copilote python -m copilote.diagnostic
+```
+
+L'en-tête de l'application affiche « données http ». L'écran **Données** (responsables) présente le même diagnostic.
+
+### Le vrai datahub
+
+Transmettre à l'équipe du datahub le contrat d'interface [`CONTRAT-DATAHUB.md`](CONTRAT-DATAHUB.md). Une fois l'accès obtenu, dans `.env` :
+
+```bash
+DATASOURCE=http
+DATAHUB_URL=https://datahub.mon-entreprise.local/api/v1
+DATAHUB_TOKEN=…                       # jeton en lecture seule
+# DATAHUB_DATE_REFERENCE à supprimer : la date du jour réelle est utilisée
+```
+
+```bash
+docker compose up -d                  # sans le profil simulateur
+docker compose exec copilote python -m copilote.diagnostic
+```
+
+Code de sortie du diagnostic : `0` conforme, `1` corrections nécessaires, `2` lecture impossible (datahub injoignable, jeton refusé, réponse non conforme). Les anomalies listées sont à corriger dans l'ERP. En attendant, le copilote écarte automatiquement les enregistrements inexploitables (doublons, références orphelines, lots périmés…).
+
+## 9. Supervision et journaux
 
 ```bash
 docker compose logs -f copilote                                   # une ligne JSON par requête (utilisateur, route, statut, durée)
@@ -134,4 +175,6 @@ curl -s https://DOMAINE/sante                                      # sonde publi
 | Le certificat n'est pas délivré | Vérifier le DNS (`dig +short DOMAINE`) et l'ouverture du port 80 ; `docker compose logs caddy` |
 | « Trop de tentatives » | Attendre une minute, ou réinitialiser le mot de passe (étape 5) |
 | Un télévendeur voit une file vide | Son nom affiché ne correspond pas au champ « commercial » de l'ERP |
+| Écran « Données » : « Lecture impossible » | `DATAHUB_URL` et `DATAHUB_TOKEN` dans `.env` ; depuis le serveur : `docker compose exec copilote python -m copilote.diagnostic` |
+| Avec le simulateur, fiches incohérentes (stock périmé, rien en retard) | `DATAHUB_DATE_REFERENCE=2026-10-23` manquant : le jeu fictif est daté |
 | Construction impossible derrière un proxy d'entreprise | `docker build --secret id=ca_entreprise,src=/chemin/ca.crt .` (voir l'en-tête du `Dockerfile`) |

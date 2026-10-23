@@ -39,6 +39,11 @@ class SourceEnCache(DataSource):
             self._valeurs[cle] = (maintenant, valeur)
         return valeur
 
+    @property
+    def source(self) -> DataSource:
+        """La source enveloppée (pour mesurer ses vrais temps de réponse, sans le cache)."""
+        return self._source
+
     def vider(self) -> None:
         with self._verrou:
             self._valeurs.clear()

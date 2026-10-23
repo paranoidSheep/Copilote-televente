@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import sqlite3
+from contextlib import closing
 from datetime import datetime
 from pathlib import Path
 
@@ -21,7 +22,8 @@ def sauvegarder(source: Path, destination: Path, horodatage: str) -> Path | None
     if not source.exists():
         return None
     cible = destination / f"{source.stem}-{horodatage}.sqlite3"
-    with sqlite3.connect(source) as origine, sqlite3.connect(cible) as copie:
+    # `closing` : le `with` d'une connexion sqlite3 valide la transaction mais ne ferme pas la connexion.
+    with closing(sqlite3.connect(source)) as origine, closing(sqlite3.connect(cible)) as copie:
         origine.backup(copie)
     return cible
 

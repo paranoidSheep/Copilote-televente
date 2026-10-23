@@ -331,5 +331,28 @@ pre.code {
 @media (min-width: 760px) { .bandeau-dev { bottom: 12px; } }
 @media (max-width: 520px) {
   .utilisateur .role-utilisateur { display: none; }
-  .entete select { max-width: 34vw; }
+  .nom-utilisateur { max-width: 34vw; overflow: hidden; text-overflow: ellipsis; }
+  /* Choix de la file (responsables) : sur sa propre ligne, sous le titre. */
+  .entete-contenu { flex-wrap: wrap; row-gap: 8px; }
+  .entete select { order: 10; flex: 1 1 100%; max-width: none; }
 }
+
+/* ------------------------------------------------------------- Diagnostic des données */
+
+.statut-diagnostic .badge { font-size: .88rem; padding: 4px 10px; }
+.verifications { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.verifications > li { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 6px; align-items: start; font-size: .9rem; }
+.verifications.compactes { gap: 4px; }
+.verifications.compactes > li { font-size: .84rem; color: var(--texte-doux); }
+.ok { color: var(--succes); font-weight: 700; }
+.ko { color: var(--alerte); font-weight: 600; }
+.duree-mesure { display: grid; grid-template-columns: minmax(60px, 1fr) auto; gap: 8px; align-items: center; }
+.duree-mesure .jauge { display: block; margin-top: 0; }
+details.regle > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+details.regle > summary::-webkit-details-marker { display: none; }
+details.regle > summary::before { content: "▸"; color: var(--texte-doux); transition: transform .15s; }
+details.regle[open] > summary::before { transform: rotate(90deg); }
+details.regle .nom { font-weight: 600; }
+details.regle .tableau td { padding: 6px; }
+details.regle .tableau td:first-child { width: 1%; white-space: nowrap; padding-right: 18px; }
+.compte-regle { font-weight: 800; min-width: 2ch; text-align: right; }

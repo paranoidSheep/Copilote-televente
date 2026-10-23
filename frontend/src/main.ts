@@ -10,6 +10,7 @@ import type { ContexteSession, Permission, Role } from "./types-api.js";
 import { vueClient360 } from "./vues/client360.js";
 import { vueClients } from "./vues/clients.js";
 import { afficherConnexion } from "./vues/connexion.js";
+import { vueDonnees } from "./vues/donnees.js";
 import { vueFiche } from "./vues/fiche.js";
 import { vueFileAppels } from "./vues/file-appels.js";
 import { vueLabo } from "./vues/labo.js";
@@ -30,6 +31,7 @@ const MENU: EntreeMenu[] = [
   { rubrique: "stock", chemin: "#/stock", icone: "📦", libelle: "Stock" },
   { rubrique: "tableau", chemin: "#/tableau-de-bord", icone: "📊", libelle: "Suivi" },
   { rubrique: "labo", chemin: "#/labo", icone: "🧪", libelle: "Labo", permission: "utiliser_le_labo" },
+  { rubrique: "donnees", chemin: "#/donnees", icone: "🩺", libelle: "Données", permission: "diagnostiquer_les_donnees" },
 ];
 
 const LIBELLES_ROLES: Record<Role, string> = { televendeur: "Télévendeur", responsable: "Responsable", admin: "Administrateur" };
@@ -41,7 +43,8 @@ const routeur = new Routeur()
   .ajouter("/clients/:id/360", "clients", vueClient360)
   .ajouter("/stock", "stock", vueStock)
   .ajouter("/tableau-de-bord", "tableau", vueTableauDeBord)
-  .ajouter("/labo", "labo", vueLabo);
+  .ajouter("/labo", "labo", vueLabo)
+  .ajouter("/donnees", "donnees", vueDonnees);
 
 function entete(contexte: Contexte, auChangementVendeur: () => void, seDeconnecter: () => void) {
   const { session } = contexte;
@@ -127,7 +130,8 @@ function lancerApplication(racine: HTMLElement, session: ContexteSession): void 
       remplacer(cible, messageErreur("Page introuvable."));
       return;
     }
-    if (resolution.route.rubrique === "labo" && !contexte.peut("utiliser_le_labo")) {
+    const permission = MENU.find((m) => m.rubrique === resolution.route.rubrique)?.permission;
+    if (permission && !contexte.peut(permission)) {
       remplacer(cible, messageErreur("Cette page est réservée aux responsables."));
       return;
     }

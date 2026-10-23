@@ -5,8 +5,8 @@ Ce plan est suivi au fil de l'eau : chaque case est cochée quand l'élément es
 | Étape | Objectif | Statut |
 |---|---|---|
 | 1 | Prêt pour le VPS : conteneur, HTTPS, comptes utilisateurs | ✅ livrée |
-| 2 | Brancher le datahub sans attendre : simulateur REST et contrôle qualité des données | ⏳ en cours |
-| 3 | Mesurer la qualité de l'IA : banc d'évaluation | à faire |
+| 2 | Brancher le datahub sans attendre : simulateur REST et contrôle qualité des données | ✅ livrée |
+| 3 | Mesurer la qualité de l'IA : banc d'évaluation | ⏳ en cours |
 | 4 | La journée du télévendeur : mode tournée, rappels, apprentissage des retours | à faire |
 
 ---
@@ -32,13 +32,20 @@ Ce plan est suivi au fil de l'eau : chaque case est cochée quand l'élément es
 
 **Pourquoi.** Le vrai datahub n'est pas encore accessible, mais le chemin `DATASOURCE=http` doit être éprouvé dès maintenant. Il faut aussi donner à l'équipe du datahub un contrat précis, et pouvoir diagnostiquer les données dès le premier branchement.
 
-- [ ] Simulateur de datahub REST (pagination, jeton, filtres), alimenté par le jeu fictif
-- [ ] Test d'intégration de bout en bout : `HttpDataSource` → simulateur → analyses → fiche
-- [ ] Contrat d'interface exporté en OpenAPI (`docs/contrat-datahub.json`), à transmettre à l'équipe datahub
-- [ ] Diagnostic de connexion : temps de réponse et volumes par ressource
-- [ ] Contrôle qualité des données : références orphelines, prix nuls, DLC incohérentes, doublons, clients sans télévendeur…
-- [ ] Écran « Données » (réservé aux responsables) et endpoint `/admin/diagnostic`
-- [ ] Tests et captures (diagnostic avec anomalies détectées)
+- [x] Simulateur de datahub REST (pagination, jeton, filtres), alimenté par le jeu fictif
+- [x] Test d'intégration de bout en bout : `HttpDataSource` → simulateur → analyses → fiche
+- [x] Contrat d'interface exporté en OpenAPI (`docs/contrat-datahub.json`), à transmettre à l'équipe datahub
+- [x] Diagnostic de connexion : temps de réponse et volumes par ressource
+- [x] Contrôle qualité des données : références orphelines, prix nuls, DLC incohérentes, doublons, clients sans télévendeur…
+- [x] Écran « Données » (réservé aux responsables) et endpoint `/admin/diagnostic`
+- [x] Tests et captures (diagnostic avec anomalies détectées)
+
+**Livré.**
+- **Simulateur.** Le simulateur (`python -m copilote.datahub.simulateur`) sert le jeu fictif selon le contrat REST : jeton, pagination `{items, next}`, filtres `client_id` et `depuis`. Ses options `--anomalies` et `--latence-ms` injectent des défauts réalistes et simulent le réseau.
+- **Contrat.** Le contrat est rédigé pour l'équipe du datahub ([`CONTRAT-DATAHUB.md`](CONTRAT-DATAHUB.md)), avec sa version OpenAPI, vérifiée par la CI.
+- **Robustesse.** En branchant le simulateur avec anomalies, le plan d'écoulement plantait sur une commande d'un client inconnu. Le copilote écarte désormais les données inexploitables au chargement (doublons, références orphelines, commandes futures, lots périmés) et en garde la trace.
+- **Diagnostic.** Le diagnostic (écran « Données », `GET /admin/diagnostic`, `python -m copilote.diagnostic`) couvre la connexion, 5 points du contrat et 15 règles de qualité, avec les identifiants ERP à corriger.
+- **Vérification.** La pile Docker a été testée avec le profil `simulateur`, en HTTPS. Les tests vérifient que la fiche obtenue par HTTP est strictement identique à celle du mock. Les captures sont dans [`captures/etape-2/`](captures/etape-2/).
 
 ## Étape 3 — Mesurer la qualité de l'IA
 
@@ -74,3 +81,4 @@ Ce plan est suivi au fil de l'eau : chaque case est cochée quand l'élément es
 |---|---|---|
 | 23/10/2026 | — | Plan rédigé |
 | 23/10/2026 | 1 | Docker + Caddy HTTPS, comptes et rôles, sessions signées, droits, journaux JSON, sauvegardes, guide VPS, 164 tests |
+| 23/10/2026 | 2 | Simulateur REST, contrat OpenAPI, mise à l'écart des données inexploitables, diagnostic (écran, API, CLI), profil Docker `simulateur`, 208 tests |

@@ -20,4 +20,9 @@ def creer_source(config: Config) -> DataSource:
     return SourceEnCache(HttpDataSource(config.datahub), config.duree_cache_secondes)
 
 
-__all__ = ["DataSource", "SourceEnCache", "creer_source"]
+def sans_cache(source: DataSource) -> DataSource:
+    """La source réelle derrière un éventuel cache."""
+    return source.source if isinstance(source, SourceEnCache) else source
+
+
+__all__ = ["DataSource", "SourceEnCache", "creer_source", "sans_cache"]

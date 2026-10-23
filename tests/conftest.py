@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+import socket
+import threading
+import time
+from collections.abc import Iterable, Iterator
 from datetime import date, datetime, timedelta
 
 import pytest
+import uvicorn
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from copilote.analyses import Referentiel
@@ -15,6 +20,7 @@ from copilote.comptes import DepotUtilisateursMemoire, Role, Utilisateur, mots_d
 from copilote.config import Config, ConfigSecurite, ModeLLM
 from copilote.datahub import DataSource
 from copilote.datahub.mock import MockDataSource
+from copilote.datahub.simulateur import creer_simulateur
 from copilote.domaine import Client, ClientIntrouvable, Commande, Famille, LigneCommande, Lot, Produit
 from copilote.horloge import HorlogeFixe
 from copilote.journal import DepotMemoire
@@ -226,3 +232,40 @@ def api(application: Application) -> TestClient:
 def api_televendeur(application: Application) -> TestClient:
     """Client HTTP connecté en tant que télévendeuse (Julie Moreau)."""
     return client_connecte(application, "julie")
+
+
+# --------------------------------------------------------------------------- simulateur du datahub
+
+JETON_SIMULATEUR = "jeton-des-tests"
+
+
+def servir(app: FastAPI) -> Iterator[str]:
+    """Sert une application ASGI sur un port libre, dans un fil d'exécution ; renvoie son URL."""
+    prise = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    prise.bind(("127.0.0.1", 0))
+    port = prise.getsockname()[1]
+    serveur = uvicorn.Server(uvicorn.Config(app, log_level="warning"))
+    fil = threading.Thread(target=serveur.run, kwargs={"sockets": [prise]}, daemon=True)
+    fil.start()
+    limite = time.monotonic() + 10
+    while not serveur.started:
+        assert time.monotonic() < limite, "le serveur de test n'a pas démarré"
+        time.sleep(0.01)
+    try:
+        yield f"http://127.0.0.1:{port}"
+    finally:
+        serveur.should_exit = True
+        fil.join(timeout=10)
+        prise.close()
+
+
+@pytest.fixture(scope="session")
+def url_simulateur() -> Iterator[str]:
+    """Simulateur du datahub (données du mock, sans anomalie), joignable en HTTP réel."""
+    yield from servir(creer_simulateur(jeton=JETON_SIMULATEUR))
+
+
+@pytest.fixture(scope="session")
+def url_simulateur_anomalies() -> Iterator[str]:
+    """Simulateur avec des défauts de données injectés."""
+    yield from servir(creer_simulateur(jeton=JETON_SIMULATEUR, anomalies=True))

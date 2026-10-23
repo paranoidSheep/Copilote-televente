@@ -29,6 +29,8 @@ jobs:
         run: python -m scripts.cassettes verifier
       - name: Types TypeScript à jour avec l'API
         run: python -m scripts.generer_types_ts --verifier
+      - name: Contrat d'interface du datahub à jour
+        run: python -m scripts.exporter_contrat_datahub --verifier
 
   frontend:
     name: TypeScript (compilation stricte)

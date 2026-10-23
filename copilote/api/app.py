@@ -37,7 +37,7 @@ from copilote.domaine import (
 from copilote.services import ErreurValidation
 
 from .dependances import exiger, utilisateur_courant
-from .routes import appels, auth, clients, labo, stock, systeme
+from .routes import admin, appels, auth, clients, labo, stock, systeme
 
 DOSSIER_STATIQUE = Path(__file__).resolve().parent / "static"
 journal = logging.getLogger("copilote.api")
@@ -144,6 +144,7 @@ def creer_app(application: Application | None = None) -> FastAPI:
     for module in (clients, appels, stock):
         app.include_router(module.routeur, dependencies=authentifie)
     app.include_router(labo.routeur, dependencies=[Depends(exiger(Permission.UTILISER_LE_LABO))])
+    app.include_router(admin.routeur, dependencies=[Depends(exiger(Permission.DIAGNOSTIQUER_LES_DONNEES))])
 
     app.mount("/static", StaticFiles(directory=DOSSIER_STATIQUE), name="static")
 

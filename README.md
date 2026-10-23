@@ -106,10 +106,11 @@ Le code est organisé en couches : chaque couche ne dépend que des couches au-d
 | `copilote/domaine` | Objets métier immuables (client, produit, commande, lot) et erreurs |
 | `copilote/datahub` | Interface `DataSource` en lecture seule, source simulée, client REST du vrai datahub et cache |
 | `copilote/journal` | Comptes-rendus d'appels : modèles, stockage SQLite **local**, statistiques |
-| `copilote/analyses` | Calculs métier purs sur un `Referentiel` (instantané indexé). Toutes les règles sont dans `regles.py`. |
+| `copilote/analyses` | Calculs métier purs sur un `Referentiel` (instantané indexé, débarrassé des données inexploitables). Toutes les règles sont dans `regles.py`. |
+| `copilote/diagnostic` | Diagnostic des données : mesures de connexion, vérification du contrat d'interface, règles de qualité |
 | `copilote/fiche` | Modèle de la fiche, assemblage avec garde-fous, repli sans IA, panier proposé, rendu texte |
 | `copilote/agent` | Outils exposés au LLM, boucle de rédaction, trace, fournisseurs (`llm/`) |
-| `copilote/services` | Orchestration : fiches (choix du rédacteur, repli, cache), journal, pilotage |
+| `copilote/services` | Orchestration : fiches (choix du rédacteur, repli, cache), journal, pilotage, diagnostic |
 | `copilote/application.py` | Assemblage des composants à partir de la configuration (seul endroit qui choisit les implémentations) |
 | `copilote/api` | FastAPI : routeurs par domaine, traduction des erreurs, interface web |
 | `frontend/` | Interface en TypeScript strict, sans framework ni bundler, compilée dans `copilote/api/static/js` |
@@ -148,13 +149,14 @@ La documentation interactive est disponible sur `/docs`. Endpoints principaux :
 | GET | `/statistiques` | Indicateurs d'efficacité (`jours`) |
 | GET | `/stock/plan-ecoulement` | Plan d'écoulement du stock |
 | GET | `/labo/agent`, `/labo/clients/{id}/outils`, `/labo/clients/{id}/comparaison` | Inspection de l'agent |
+| GET | `/admin/diagnostic` | Diagnostic des données : connexion, contrat d'interface, qualité |
 | POST | `/auth/connexion`, `/auth/deconnexion` | Ouverture et fermeture de session (cookie signé) |
 | GET | `/session` | Utilisateur connecté, droits, source de données, rédacteurs disponibles |
 | GET | `/sante` | Sonde publique de supervision (aucune donnée métier) |
 
 Toutes les routes, sauf `/sante`, `/auth/*` et l'interface, exigent une session. Les droits sont vérifiés côté serveur :
 - un télévendeur ne voit que sa propre file d'appels et ses propres résultats ;
-- le labo est réservé aux responsables ;
+- le labo et le diagnostic des données sont réservés aux responsables ;
 - un compte-rendu est toujours enregistré au nom de l'utilisateur connecté.
 
 ## Configuration
@@ -176,12 +178,13 @@ Toutes les routes, sauf `/sante`, `/auth/*` et l'interface, exigent une session.
 | `FORMAT_JOURNAUX` | `texte` (`json` en Docker) | Journaux lisibles ou structurés |
 | `MOCK_DATA_PATH` | jeu fourni | Autre fichier de données simulées |
 | `DATAHUB_URL`, `DATAHUB_TOKEN`, `DATAHUB_TIMEOUT` | (vides), 10 s | Accès au vrai datahub |
+| `DATAHUB_DATE_REFERENCE` | date du jour | Date figée (AAAA-MM-JJ) pour une recette sur une extraction ou sur le simulateur |
 | `CACHE_SECONDES` | `300` | Durée de vie de l'instantané des données (et du cache du datahub) |
 
 ## Qualité
 
 ```bash
-make verifier   # ruff, mypy --strict, tests et couverture, cassettes, types TypeScript
+make verifier   # ruff, mypy --strict, tests et couverture, cassettes, types TypeScript, contrat du datahub
 make front      # régénère les types puis compile le frontend (nécessite Node.js)
 python -m scripts.rapport_verification --capture var/verification.png   # rapport HTML + capture
 ```
@@ -202,40 +205,48 @@ Les tests sont organisés par couche :
 | `test_services.py` | Choix du rédacteur, cache des fiches, journal |
 | `test_api.py` | Endpoints, codes d'erreur, types TypeScript à jour |
 | `test_comptes.py` | Mots de passe, sessions signées, blocage, droits par rôle, en-têtes de sécurité, administration, sauvegardes |
+| `test_simulateur.py` | Simulateur du datahub, contrat exporté, chemin `DATASOURCE=http` de bout en bout sur un vrai serveur HTTP |
+| `test_diagnostic.py` | Mise à l'écart des données inexploitables, règles de qualité, contrat non respecté, source en panne, API, ligne de commande |
 
 ## Brancher le vrai datahub
 
-Le copilote ne dépend que de l'interface `DataSource` (`copilote/datahub/base.py`). Brancher le datahub, c'est **compléter `copilote/datahub/http.py`**, où chaque point à confirmer est marqué `TODO(datahub)`, puis passer `DATASOURCE=http`. Les analyses, l'agent, l'API et l'interface ne changent pas.
+Le copilote ne dépend que de l'interface `DataSource` (`copilote/datahub/base.py`). Brancher le datahub, c'est **adapter `copilote/datahub/http.py`** (chaque point à confirmer y est marqué `TODO(datahub)`), puis passer `DATASOURCE=http`. Les analyses, l'agent, l'API et l'interface ne changent pas.
 
-### 1. Ce que le datahub doit fournir (lecture seule)
+Tout est prêt pour que ce branchement se fasse en confiance :
 
-| Méthode `DataSource` | Appel supposé | Données attendues |
-|---|---|---|
-| `get_clients()` | `GET /clients` | id, nom, type d'établissement, ville, contact, téléphone, télévendeur |
-| `get_client(id)` | `GET /clients/{id}` | idem ; 404 si inconnu |
-| `get_order_history(client_id, depuis)` | `GET /commandes?client_id=…&depuis=AAAA-MM-JJ` | commandes **avec leurs lignes** : produit, quantité, prix unitaire HT |
-| `get_products()` | `GET /produits` | code, libellé, catégorie, famille (frais/surgelé), unité, prix HT, durée de vie |
-| `get_stock()` | `GET /stock/lots` | lots disponibles : produit, quantité, DLC, date de réception, entrepôt |
-
-### 2. Points à implémenter ou à valider
-
-1. **Authentification** : le client envoie aujourd'hui `Authorization: Bearer $DATAHUB_TOKEN`. À adapter si le datahub utilise un autre schéma (en-tête dédié, certificat…).
-2. **Chemins et paramètres** des cinq appels ci-dessus.
-3. **Pagination** (`_get_liste`) : deux formats sont gérés, une liste JSON directe ou `{"items": [...], "next": url}`, avec un garde-fou de 1 000 pages.
-4. **Correspondance des champs** (`_vers_client`, `_vers_produit`, `_vers_commande`, `_vers_lot`). Quelques choix sont à arbitrer :
-   - date de commande ou date de livraison ;
-   - prix tarif ou prix net client ;
-   - DLC ou DDM ;
-   - stock disponible uniquement, hors réservé et hors bloqué qualité.
-5. **Lignes de commande** : si `/commandes` ne les renvoie pas, prévoir un appel par commande, ou mieux, un endpoint qui les inclut.
-6. **Volumétrie** : en mode `http`, la source est automatiquement placée derrière `SourceEnCache` (`CACHE_SECONDES`). Toutes les analyses d'une même période travaillent sur un seul instantané chargé en mémoire. Si l'historique global sur 6 mois devient trop lourd, on pourra demander au datahub des agrégats déjà calculés.
-7. **Tests** : `tests/test_datahub.py` montre comment valider la correspondance des champs sans réseau (`httpx.MockTransport`). Il est conseillé d'y ajouter un exemple de réponse anonymisé par endpoint.
+| Outil | Rôle |
+|---|---|
+| [`docs/CONTRAT-DATAHUB.md`](docs/CONTRAT-DATAHUB.md) et [`docs/contrat-datahub.json`](docs/contrat-datahub.json) | Contrat d'interface à transmettre à l'équipe du datahub : ressources, paramètres, champs, pagination, erreurs (OpenAPI, ouvrable dans Swagger Editor ou Postman) |
+| `python -m copilote.datahub.simulateur` | Simulateur REST qui respecte ce contrat (jeton, pagination, filtres), avec `--anomalies` pour injecter des défauts réalistes et `--latence-ms` pour simuler le réseau |
+| `python -m copilote.diagnostic` | Diagnostic de la source configurée : temps de réponse et volumes, respect du contrat, 15 règles de qualité. Code de sortie 0, 1 (à corriger) ou 2 (lecture impossible) |
+| Écran **Données** (responsables) et `GET /admin/diagnostic` | Le même diagnostic dans l'interface, avec les enregistrements à corriger dans l'ERP |
 
 ```bash
+# 1. Éprouver le chemin http dès aujourd'hui, avec le simulateur
+python -m copilote.datahub.simulateur --port 8100 --jeton secret --anomalies &
+export DATASOURCE=http DATAHUB_URL=http://127.0.0.1:8100 DATAHUB_TOKEN=secret DATAHUB_DATE_REFERENCE=2026-10-23
+python -m copilote.diagnostic          # statut, contrat, anomalies détaillées
+python -m copilote                     # l'application, branchée en http
+
+# 2. Le jour J, avec le vrai datahub
 export DATASOURCE=http DATAHUB_URL=https://datahub.mon-entreprise.local/api/v1 DATAHUB_TOKEN=...
-python -m copilote
-curl localhost:8000/sante   # "source_donnees": "http"
+unset DATAHUB_DATE_REFERENCE           # date du jour réelle
+python -m copilote.diagnostic
 ```
+
+Sur le VPS, le simulateur s'active avec `docker compose --profile simulateur up -d` (voir [`docs/DEPLOIEMENT.md`](docs/DEPLOIEMENT.md)).
+
+### Données défectueuses : écartées, puis signalées
+
+Un premier branchement révèle toujours des défauts. Au chargement, le copilote **écarte** ce qu'il ne peut pas exploiter sans risque (`copilote/analyses/exploitabilite.py`) : doublons, commandes d'un client inconnu ou datées dans le futur, lignes et lots sur un produit absent du catalogue, lots à DLC dépassée (jamais proposés à la vente). Il **signale** le reste, exploitable mais douteux : prix à 0 €, durée de vie non renseignée, quantité anormale, client sans télévendeur… Le diagnostic liste chaque enregistrement concerné, avec son identifiant ERP et l'impact sur les fiches.
+
+### Points à valider avec l'équipe du datahub
+
+1. **Authentification** : `Authorization: Bearer $DATAHUB_TOKEN` aujourd'hui ; à adapter si le datahub utilise un autre schéma (en-tête dédié, certificat…).
+2. **Chemins, paramètres et pagination** : ceux du contrat. Le client sait aussi lire une liste JSON simple, avec un garde-fou de 1 000 pages.
+3. **Correspondance des champs** (`_vers_client`, `_vers_produit`, `_vers_commande`, `_vers_lot`), avec quelques choix à arbitrer : date de commande ou de livraison, prix tarif ou prix net client, DLC ou DDM, stock disponible uniquement (hors réservé et bloqué qualité).
+4. **Volumétrie** : en mode `http`, la source est placée derrière un cache (`CACHE_SECONDES`) et toutes les analyses d'une période travaillent sur un seul instantané. Le diagnostic mesure les temps de réponse réels, sans le cache.
+5. **Tests** : `tests/test_simulateur.py` vérifie de bout en bout (réseau réel, pagination comprise) que `HttpDataSource` restitue exactement les données du jeu fictif et produit les mêmes fiches. Il est conseillé d'y ajouter un exemple de réponse anonymisé par ressource du vrai datahub.
 
 ### Règle absolue : rien n'est jamais écrit dans l'ERP
 

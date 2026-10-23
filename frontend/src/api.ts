@@ -13,6 +13,7 @@ import type {
   ContexteSession,
   ModeLLM,
   PlanEcoulement,
+  RapportDiagnostic,
   ResultatOutilLabo,
   SaisieCompteRendu,
   StatistiquesAppels,
@@ -99,6 +100,8 @@ export const api = {
   statistiques: (jours: number) => requete<StatistiquesAppels>(url("/statistiques", { jours })),
 
   planEcoulement: () => requete<PlanEcoulement>("/stock/plan-ecoulement"),
+
+  diagnostic: () => requete<RapportDiagnostic>("/admin/diagnostic"),
 
   labo: {
     agent: (clientId: string) => requete<ConfigurationAgent>(url("/labo/agent", { client_id: clientId })),

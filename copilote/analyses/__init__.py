@@ -8,6 +8,7 @@ from .appels import AppelPrecedent, HistoriqueAppels, resumer_appels
 from .base import Resultat
 from .contexte import ContexteClient, construire_contexte
 from .ecoulement import ClientCible, LigneEcoulement, PlanEcoulement, construire_plan_ecoulement
+from .exploitabilite import DonneesExploitables, Ecart, MotifEcart, filtrer_exploitables
 from .habitudes import CaMensuel, HabitudesClient, PartCategorie, ProduitRecurrent, analyser_habitudes
 from .manquants import ProduitManquant, ProduitsManquants, StatutManquant, analyser_manquants
 from .priorisation import FileAppels, NiveauPriorite, PrioriteAppel, RaisonPriorite, construire_file_appels
@@ -35,11 +36,14 @@ __all__ = [
     "ClientCible",
     "ContexteClient",
     "DetailsProduit",
+    "DonneesExploitables",
+    "Ecart",
     "FileAppels",
     "HabitudesClient",
     "HistoriqueAppels",
     "JourSemaine",
     "LigneEcoulement",
+    "MotifEcart",
     "MotifEcoulement",
     "NiveauPriorite",
     "PartCategorie",
@@ -68,6 +72,7 @@ __all__ = [
     "construire_contexte",
     "construire_file_appels",
     "construire_plan_ecoulement",
+    "filtrer_exploitables",
     "remise_suggeree",
     "resumer_appels",
     "seuil_dlc_courte",

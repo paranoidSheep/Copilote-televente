@@ -5,7 +5,7 @@ Ce document décrit l'organisation du code, les choix de conception et le parcou
 ## Principes
 
 1. **Couches à dépendances descendantes.** Une couche n'importe que les couches inférieures :
-   `domaine` ← `datahub`, `journal` ← `analyses` ← `fiche` ← `agent` ← `services` ← `application` ← `api`.
+   `domaine` ← `datahub`, `journal`, `comptes` ← `analyses` ← `diagnostic`, `fiche` ← `agent` ← `services` ← `application` ← `api`.
 2. **Les calculs sont purs.** Les analyses prennent un `Referentiel` (instantané immuable des données) et renvoient des résultats typés. Elles ne font aucun accès réseau ni aucune écriture. On les teste avec des données construites à la main.
 3. **Un seul endroit pour assembler.** `copilote/application.py` choisit les implémentations concrètes : source, stockage, fournisseurs d'IA, horloge. Les tests y injectent les leurs, sans « monkeypatch ».
 4. **Typage strict partout.**
@@ -34,6 +34,25 @@ GET /clients/C005/fiche
         ├─ en cas d'ErreurRedaction → fiche.rediger_sans_ia() (repli) avec avertissement et trace
         └─ fiche.assembler_fiche()        garde-fous + panier + rendu texte
 ```
+
+## Chargement des données et diagnostic
+
+Les analyses ne voient jamais de données incohérentes : elles sont filtrées au chargement de l'instantané. Le diagnostic relit exactement les mêmes écarts, ce qui garantit que « ce qui est écarté » et « ce qui est signalé » ne divergent jamais.
+
+```
+Referentiel.charger(source)                     source = mock, ou http derrière SourceEnCache
+  └─ analyses.filtrer_exploitables()            doublons, références orphelines, commandes futures,
+                                                lots périmés → écartés, chacun tracé par un Ecart
+
+GET /admin/diagnostic                           (ou python -m copilote.diagnostic)
+  └─ services/diagnostic.py                     ServiceDiagnostic : la source SANS le cache
+     └─ diagnostic.diagnostiquer()
+        ├─ connexion.lire_source()              chaque ressource chronométrée ; une erreur → « lecture impossible »
+        ├─ connexion.verifier_contrat()         lecture unitaire, 404, filtres client_id et depuis, lignes
+        └─ qualite.controler_qualite()          15 règles ; les règles « écartées » relisent les Ecart
+```
+
+Le simulateur (`datahub/simulateur.py`) est l'implémentation de référence du contrat REST : son schéma OpenAPI est exporté dans `docs/contrat-datahub.json`, et les tests vérifient que `HttpDataSource` → réseau → simulateur restitue exactement les données du mock et produit les mêmes fiches.
 
 ## Fournisseurs de LLM
 
@@ -64,6 +83,7 @@ Pour ajouter un fournisseur, par exemple un modèle hébergé en interne, il suf
 |---|---|---|---|
 | Clients, produits, commandes, stock | ERP | Datahub (ou mock JSON) | **Jamais** |
 | Comptes-rendus d'appels | Copilote | SQLite local (`var/journal.sqlite3`) | Oui, uniquement ici |
+| Comptes utilisateurs | Copilote | SQLite local (`var/utilisateurs.sqlite3`) | Oui (administration) |
 | Fiches générées | Copilote | Cache mémoire par (client, jour, mode) | Invalidé à chaque compte-rendu du client |
 | Instantané `Referentiel` | Copilote | Mémoire, durée `CACHE_SECONDES` | — |
 
@@ -83,6 +103,8 @@ Pour ajouter un fournisseur, par exemple un modèle hébergé en interne, il suf
 | Modifier les consignes données à l'IA | `copilote/agent/prompts.py` |
 | Ajouter un outil pour l'IA | `copilote/agent/outils.py` (+ une analyse dans `copilote/analyses/`) |
 | Ajouter un garde-fou | `copilote/fiche/assemblage.py` |
-| Brancher le datahub | `copilote/datahub/http.py` (voir le README) |
+| Brancher le datahub | `copilote/datahub/http.py` (voir le README et `docs/CONTRAT-DATAHUB.md`) |
+| Faire évoluer le contrat du datahub | `copilote/datahub/simulateur.py`, puis `python -m scripts.exporter_contrat_datahub` |
+| Ajouter une règle de qualité des données | `copilote/diagnostic/qualite.py` (et `analyses/exploitabilite.py` si l'enregistrement doit être écarté) |
 | Ajouter un écran | `frontend/src/vues/`, puis le routeur dans `frontend/src/main.ts` |
 | Ajouter un endpoint | `copilote/api/routes/`, puis `python -m scripts.generer_types_ts` |

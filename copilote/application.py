@@ -20,7 +20,13 @@ from copilote.config import Config, ModeLLM
 from copilote.datahub import DataSource, creer_source
 from copilote.horloge import Horloge, HorlogeAlignee
 from copilote.journal import DepotJournal, DepotSQLite
-from copilote.services import FournisseurReferentiel, ServiceFiches, ServiceJournal, ServicePilotage
+from copilote.services import (
+    FournisseurReferentiel,
+    ServiceDiagnostic,
+    ServiceFiches,
+    ServiceJournal,
+    ServicePilotage,
+)
 
 journal_app = logging.getLogger("copilote")
 
@@ -33,6 +39,7 @@ class Application:
     journal: ServiceJournal
     pilotage: ServicePilotage
     comptes: ServiceComptes
+    diagnostic: ServiceDiagnostic
 
 
 def signataire_sessions(config: Config) -> SignataireSessions:
@@ -84,4 +91,5 @@ def creer_application(
         comptes=ServiceComptes(
             depot_utilisateurs or DepotUtilisateursSQLite(config.chemin_utilisateurs), signataire_sessions(config)
         ),
+        diagnostic=ServiceDiagnostic(source, regles),
     )

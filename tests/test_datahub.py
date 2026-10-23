@@ -150,6 +150,34 @@ def test_http_erreurs():
         source_http(lambda _r: httpx.Response(200, json=[{"id": "1"}]), []).get_clients()
 
 
+def test_http_reponses_non_conformes_signalees_avec_l_element_fautif():
+    with pytest.raises(ErreurSourceDonnees, match="Réponse non JSON"):
+        source_http(lambda _r: httpx.Response(200, text="<html>maintenance</html>"), []).get_clients()
+    with pytest.raises(ErreurSourceDonnees, match="DATAHUB_TOKEN"):
+        source_http(lambda _r: httpx.Response(403), []).get_clients()
+    famille_inconnue = [{"code": "Z1", "libelle": "Z", "famille": "ambiant", "prix_unitaire_ht": 1}]
+    with pytest.raises(ErreurSourceDonnees, match=r"Élément non conforme dans /produits \(Z1\)"):
+        source_http(lambda _r: httpx.Response(200, json=famille_inconnue), []).get_products()
+    prix_negatif = [{"code": "Z2", "libelle": "Z", "famille": "frais", "prix_unitaire_ht": -1}]
+    with pytest.raises(ErreurSourceDonnees, match=r"\(Z2\)"):
+        source_http(lambda _r: httpx.Response(200, json=prix_negatif), []).get_products()
+
+
+def test_http_lignes_annulees_ignorees():
+    commande = {
+        "id": "1",
+        "client_id": "42",
+        "date": "2026-10-01",
+        "lignes": [
+            {"produit_code": "A", "quantite": 2, "prix_unitaire_ht": 3},
+            {"produit_code": "B", "quantite": 0, "prix_unitaire_ht": 3},  # ligne annulée
+            {"produit_code": "C", "quantite": -1, "prix_unitaire_ht": 3},  # avoir
+        ],
+    }
+    lue = source_http(lambda _r: httpx.Response(200, json=[commande]), []).get_order_history()[0]
+    assert [ligne.produit_code for ligne in lue.lignes] == ["A"]
+
+
 def test_http_configuration_obligatoire():
     with pytest.raises(ErreurConfiguration):
         HttpDataSource(ConfigDatahub())

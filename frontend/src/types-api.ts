@@ -120,6 +120,11 @@ export interface EtapeTrace {
   erreur: boolean;
 }
 
+export interface Exemple {
+  identifiant: string;
+  detail: string;
+}
+
 export type Famille = "frais" | "surgele";
 
 export interface Fiche {
@@ -147,6 +152,8 @@ export interface FileAppels {
   date_du_jour: string;
   appels: PrioriteAppel[];
 }
+
+export type Gravite = "critique" | "alerte" | "info";
 
 export interface HabitudesClient {
   client: Client;
@@ -251,6 +258,15 @@ export interface ManquantFiche {
   commentaire: string;
 }
 
+/** Lecture d'une ressource du datahub : durée et volume (ou erreur). */
+export interface MesureRessource {
+  ressource: string;
+  libelle: string;
+  duree_ms: number;
+  volume: number | null;
+  erreur: string | null;
+}
+
 export interface ModeDisponible {
   mode: ModeLLM;
   libelle: string;
@@ -335,6 +351,21 @@ export interface RaisonPriorite {
   points: number;
 }
 
+export interface RapportDiagnostic {
+  source: string;
+  date_reference: string;
+  genere_le: string;
+  duree_totale_ms: number;
+  periode_analyse_jours: number;
+  statut: StatutDiagnostic;
+  resume: string;
+  connexion: MesureRessource[];
+  contrat: VerificationContrat[];
+  volumes: Volumes | null;
+  qualite: ResultatRegle[];
+  enregistrements_ecartes: number;
+}
+
 export type Reponse = "accepte" | "refuse" | "sans_reponse";
 
 export interface ResultatOutilLabo {
@@ -342,6 +373,17 @@ export interface ResultatOutilLabo {
   arguments: Record<string, JsonValue>;
   est_erreur: boolean;
   resultat: JsonValue;
+}
+
+/** Résultat d'une règle de qualité, avec quelques exemples à corriger. */
+export interface ResultatRegle {
+  code: string;
+  libelle: string;
+  gravite: Gravite;
+  traitement: Traitement;
+  impact: string;
+  nombre: number;
+  exemples: Exemple[];
 }
 
 export type Role = "televendeur" | "responsable" | "admin";
@@ -422,6 +464,8 @@ export interface StatistiquesAppels {
   produits_les_plus_acceptes: StatProduit[];
 }
 
+export type StatutDiagnostic = "conforme" | "a_surveiller" | "a_corriger" | "lecture_impossible";
+
 export type StatutManquant = "en_retard" | "decroche";
 
 export interface StockFiche {
@@ -467,6 +511,8 @@ export interface TraceExecution {
   duree_totale_ms: number;
 }
 
+export type Traitement = "ecarte" | "signale";
+
 export type TypeEtape = "appel_llm" | "outil" | "garde_fou";
 
 /** Compte tel qu'exposé à l'application (jamais le hachage du mot de passe). */
@@ -476,4 +522,21 @@ export interface Utilisateur {
   role: Role;
   actif: boolean;
   cree_le: string;
+}
+
+/** Un point du contrat d'interface vérifié sur la source réelle. */
+export interface VerificationContrat {
+  libelle: string;
+  reussie: boolean;
+  detail: string;
+}
+
+export interface Volumes {
+  clients: number;
+  produits: number;
+  commandes: number;
+  lignes: number;
+  lots: number;
+  premiere_commande: string | null;
+  derniere_commande: string | null;
 }

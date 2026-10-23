@@ -25,7 +25,7 @@ function entete(fiche: Fiche, contexte: Contexte, recharger: (mode: ModeLLM | un
     "select",
     {
       classe: "champ",
-      attrs: { "aria-label": "Rédacteur de la fiche", style: "width:auto" },
+      attrs: { "aria-label": "Rédacteur de la fiche", style: "width:auto;max-width:100%" },
       on: { change: (e) => recharger(((e.target as HTMLSelectElement).value || undefined) as ModeLLM | undefined, false) },
     },
     h("option", { attrs: { value: "" } }, `Rédacteur par défaut (${LIBELLES.modeLLM[contexte.session.mode_par_defaut]})`),

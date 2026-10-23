@@ -1,0 +1,811 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Contrat d'interface du datahub (copilote télévente)",
+    "description": "Ressources que le datahub doit exposer au copilote, EN LECTURE SEULE. Authentification : en-tête `Authorization: Bearer <jeton>`. Pagination : paramètres `page` (à partir de 1) et `taille`, réponse `{items, next}`. Erreurs : 401 si le jeton est absent ou invalide, 404 si la ressource n'existe pas.",
+    "version": "1.0"
+  },
+  "paths": {
+    "/clients": {
+      "get": {
+        "tags": [
+          "clients"
+        ],
+        "summary": "Clients",
+        "description": "Clients actifs, avec le télévendeur en charge (champ `commercial`).",
+        "operationId": "clients_clients_get",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Numéro de page, à partir de 1",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "Numéro de page, à partir de 1"
+          },
+          {
+            "name": "taille",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "description": "Nombre d'éléments par page",
+              "default": 200,
+              "title": "Taille"
+            },
+            "description": "Nombre d'éléments par page"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageClients"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clients/{client_id}": {
+      "get": {
+        "tags": [
+          "clients"
+        ],
+        "summary": "Client",
+        "description": "Un client ; 404 s'il n'existe pas.",
+        "operationId": "client_clients__client_id__get",
+        "parameters": [
+          {
+            "name": "client_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Client Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Client"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/commandes": {
+      "get": {
+        "tags": [
+          "commandes"
+        ],
+        "summary": "Commandes",
+        "description": "Historique des commandes, lignes comprises (le copilote lit environ 6 mois).",
+        "operationId": "commandes_commandes_get",
+        "parameters": [
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Restreint aux commandes de ce client",
+              "title": "Client Id"
+            },
+            "description": "Restreint aux commandes de ce client"
+          },
+          {
+            "name": "depuis",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Date de début incluse (AAAA-MM-JJ)",
+              "title": "Depuis"
+            },
+            "description": "Date de début incluse (AAAA-MM-JJ)"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Numéro de page, à partir de 1",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "Numéro de page, à partir de 1"
+          },
+          {
+            "name": "taille",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "description": "Nombre d'éléments par page",
+              "default": 200,
+              "title": "Taille"
+            },
+            "description": "Nombre d'éléments par page"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageCommandes"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/produits": {
+      "get": {
+        "tags": [
+          "catalogue"
+        ],
+        "summary": "Produits",
+        "description": "Catalogue : prix tarif HT, famille (frais / surgelé) et durée de vie typique.",
+        "operationId": "produits_produits_get",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Numéro de page, à partir de 1",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "Numéro de page, à partir de 1"
+          },
+          {
+            "name": "taille",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "description": "Nombre d'éléments par page",
+              "default": 200,
+              "title": "Taille"
+            },
+            "description": "Nombre d'éléments par page"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageProduits"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/stock/lots": {
+      "get": {
+        "tags": [
+          "stock"
+        ],
+        "summary": "Lots",
+        "description": "Stock DISPONIBLE à la vente, par lot avec sa DLC (hors stock réservé ou bloqué).",
+        "operationId": "lots_stock_lots_get",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Numéro de page, à partir de 1",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "Numéro de page, à partir de 1"
+          },
+          {
+            "name": "taille",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "description": "Nombre d'éléments par page",
+              "default": 200,
+              "title": "Taille"
+            },
+            "description": "Nombre d'éléments par page"
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageLots"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Client": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "nom": {
+            "type": "string",
+            "title": "Nom"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "description": "Type d'établissement, ex. « Restaurant », « Cantine scolaire »"
+          },
+          "ville": {
+            "type": "string",
+            "title": "Ville"
+          },
+          "contact": {
+            "type": "string",
+            "title": "Contact",
+            "description": "Interlocuteur habituel"
+          },
+          "telephone": {
+            "type": "string",
+            "title": "Telephone"
+          },
+          "commercial": {
+            "type": "string",
+            "title": "Commercial",
+            "description": "Télévendeur en charge du compte"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "nom",
+          "type",
+          "ville",
+          "contact",
+          "telephone",
+          "commercial"
+        ],
+        "title": "Client",
+        "description": "Un client professionnel (restaurant, cantine, boulangerie…)."
+      },
+      "CommandeContrat": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "client_id": {
+            "type": "string",
+            "title": "Client Id"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date",
+            "description": "Date de la commande (AAAA-MM-JJ)"
+          },
+          "lignes": {
+            "items": {
+              "$ref": "#/components/schemas/LigneCommande"
+            },
+            "type": "array",
+            "title": "Lignes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "client_id",
+          "date",
+          "lignes"
+        ],
+        "title": "CommandeContrat",
+        "description": "Commande avec ses lignes (les lignes sont OBLIGATOIRES dans la réponse)."
+      },
+      "Famille": {
+        "type": "string",
+        "enum": [
+          "frais",
+          "surgele"
+        ],
+        "title": "Famille"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "LigneCommande": {
+        "properties": {
+          "produit_code": {
+            "type": "string",
+            "title": "Produit Code"
+          },
+          "quantite": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Quantite"
+          },
+          "prix_unitaire_ht": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Prix Unitaire Ht"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "produit_code",
+          "quantite",
+          "prix_unitaire_ht"
+        ],
+        "title": "LigneCommande"
+      },
+      "Lot": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "produit_code": {
+            "type": "string",
+            "title": "Produit Code"
+          },
+          "quantite": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Quantite"
+          },
+          "dlc": {
+            "type": "string",
+            "format": "date",
+            "title": "Dlc"
+          },
+          "date_reception": {
+            "type": "string",
+            "format": "date",
+            "title": "Date Reception"
+          },
+          "entrepot": {
+            "type": "string",
+            "title": "Entrepot"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "produit_code",
+          "quantite",
+          "dlc",
+          "date_reception",
+          "entrepot"
+        ],
+        "title": "Lot",
+        "description": "Un lot physique en stock, avec sa date limite de consommation (DLC)."
+      },
+      "PageClients": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Client"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "next": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next",
+            "description": "Chemin de la page suivante, filtres inclus (relatif à la racine) ; null si dernière page"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "next"
+        ],
+        "title": "PageClients"
+      },
+      "PageCommandes": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CommandeContrat"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "next": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next",
+            "description": "Chemin de la page suivante, filtres inclus (relatif à la racine) ; null si dernière page"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "next"
+        ],
+        "title": "PageCommandes"
+      },
+      "PageLots": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Lot"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "next": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next",
+            "description": "Chemin de la page suivante, filtres inclus (relatif à la racine) ; null si dernière page"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "next"
+        ],
+        "title": "PageLots"
+      },
+      "PageProduits": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Produit"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "next": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next",
+            "description": "Chemin de la page suivante, filtres inclus (relatif à la racine) ; null si dernière page"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "next"
+        ],
+        "title": "PageProduits"
+      },
+      "Produit": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "libelle": {
+            "type": "string",
+            "title": "Libelle"
+          },
+          "categorie": {
+            "type": "string",
+            "title": "Categorie"
+          },
+          "famille": {
+            "$ref": "#/components/schemas/Famille"
+          },
+          "unite": {
+            "type": "string",
+            "title": "Unite",
+            "description": "Unité de vente : kg, colis, carton, bac…"
+          },
+          "prix_unitaire_ht": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Prix Unitaire Ht"
+          },
+          "duree_vie_jours": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Duree Vie Jours",
+            "description": "Durée de vie typique entre réception et DLC"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "code",
+          "libelle",
+          "categorie",
+          "famille",
+          "unite",
+          "prix_unitaire_ht",
+          "duree_vie_jours"
+        ],
+        "title": "Produit",
+        "description": "Un article du catalogue."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "jeton": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://datahub.exemple.local/api",
+      "description": "À remplacer par l'URL réelle"
+    }
+  ],
+  "security": [
+    {
+      "jeton": []
+    }
+  ]
+}

@@ -11,7 +11,7 @@ section « Brancher le vrai datahub »).
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from datetime import date
 
 import httpx
@@ -49,6 +49,7 @@ class HttpDataSource(DataSource):
             raise ErreurConfiguration("DATAHUB_URL n'est pas défini : impossible d'utiliser DATASOURCE=http.")
         if not config.token:
             raise ErreurConfiguration("DATAHUB_TOKEN n'est pas défini : impossible d'utiliser DATASOURCE=http.")
+        self._date_reference = config.date_reference
         # TODO(datahub) : confirmer le mode d'authentification (Bearer, en-tête dédié, certificat…).
         self._http = httpx.Client(
             base_url=config.url.rstrip("/"),
@@ -70,9 +71,16 @@ class HttpDataSource(DataSource):
             raise ErreurSourceDonnees(f"Datahub injoignable ({chemin}) : {exc}") from exc
         if reponse.status_code == 404:
             raise _RessourceIntrouvable(f"Ressource introuvable sur le datahub : {chemin}")
+        if reponse.status_code in {401, 403}:
+            raise ErreurSourceDonnees(
+                f"Accès refusé par le datahub ({reponse.status_code}) sur {chemin} : vérifier DATAHUB_TOKEN"
+            )
         if reponse.is_error:
             raise ErreurSourceDonnees(f"Erreur datahub {reponse.status_code} sur {chemin} : {reponse.text[:200]}")
-        donnees: JsonValue = reponse.json()
+        try:
+            donnees: JsonValue = reponse.json()
+        except ValueError as exc:
+            raise ErreurSourceDonnees(f"Réponse non JSON sur {chemin} : {reponse.text[:120]!r}") from exc
         return donnees
 
     def _get_objet(self, chemin: str) -> ObjetJson:
@@ -114,26 +122,30 @@ class HttpDataSource(DataSource):
 
     def get_clients(self) -> list[Client]:
         # TODO(datahub) : chemin exact et filtre « clients actifs » éventuel.
-        return [_vers_client(d) for d in self._get_liste("/clients")]
+        return [_convertir(_vers_client, d, "/clients") for d in self._get_liste("/clients")]
 
     def get_client(self, client_id: str) -> Client:
         try:
-            return _vers_client(self._get_objet(f"/clients/{client_id}"))
+            return _convertir(_vers_client, self._get_objet(f"/clients/{client_id}"), "/clients")
         except _RessourceIntrouvable as exc:
             raise ClientIntrouvable(client_id) from exc
 
     def get_order_history(self, client_id: str | None = None, depuis: date | None = None) -> list[Commande]:
         # TODO(datahub) : nom des filtres ; vérifier que les lignes sont incluses.
         params = {"client_id": client_id, "depuis": depuis.isoformat() if depuis else None}
-        commandes = [_vers_commande(d) for d in self._get_liste("/commandes", params)]
+        commandes = [_convertir(_vers_commande, d, "/commandes") for d in self._get_liste("/commandes", params)]
         return sorted(commandes, key=lambda c: (c.date, c.id))
 
     def get_products(self) -> list[Produit]:
-        return [_vers_produit(d) for d in self._get_liste("/produits")]
+        return [_convertir(_vers_produit, d, "/produits") for d in self._get_liste("/produits")]
+
+    def date_du_jour(self) -> date:
+        # Date figée possible (DATAHUB_DATE_REFERENCE) : recette sur une extraction ou sur le simulateur.
+        return self._date_reference or date.today()
 
     def get_stock(self) -> list[Lot]:
         # TODO(datahub) : ne garder que le stock disponible (hors réservé / bloqué qualité).
-        return [_vers_lot(d) for d in self._get_liste("/stock/lots")]
+        return [_convertir(_vers_lot, d, "/stock/lots") for d in self._get_liste("/stock/lots")]
 
 
 # ---------------------------------------------------------------------------------
@@ -141,6 +153,16 @@ class HttpDataSource(DataSource):
 # TODO(datahub) : adapter les noms de champs au format réel. Les valeurs par défaut
 # supposent un format identique à celui du mock.
 # ---------------------------------------------------------------------------------
+
+
+def _convertir[T](conversion: Callable[[ObjetJson], T], objet: ObjetJson, ressource: str) -> T:
+    """Convertit un élément ; une donnée hors contrat devient une erreur lisible, avec l'identifiant fautif."""
+    try:
+        return conversion(objet)
+    except ValueError as exc:  # validation pydantic, valeur d'énumération inconnue, date mal formée…
+        identifiant = objet.get("id", objet.get("code", "?"))
+        detail = " ".join(str(exc).split())[:240]
+        raise ErreurSourceDonnees(f"Élément non conforme dans {ressource} ({identifiant}) : {detail}") from exc
 
 
 def _texte(d: ObjetJson, cle: str, defaut: str | None = None) -> str:
@@ -188,23 +210,28 @@ def _vers_produit(d: ObjetJson) -> Produit:
     )
 
 
+def _vers_ligne(ligne: ObjetJson) -> LigneCommande | None:
+    """Une ligne de commande ; `None` si sa quantité est nulle ou négative (annulation, avoir)."""
+    quantite = _nombre(ligne, "quantite")
+    if quantite <= 0:
+        return None  # TODO(datahub) : confirmer la représentation des annulations et des avoirs.
+    return LigneCommande(
+        produit_code=_texte(ligne, "produit_code"),
+        quantite=quantite,
+        prix_unitaire_ht=_nombre(ligne, "prix_unitaire_ht"),
+    )
+
+
 def _vers_commande(d: ObjetJson) -> Commande:
     lignes = d.get("lignes", [])
     if not isinstance(lignes, list):
         raise ErreurSourceDonnees("Champ « lignes » invalide")
+    converties = (_vers_ligne(ligne) for ligne in lignes if isinstance(ligne, dict))
     return Commande(
         id=_texte(d, "id"),
         client_id=_texte(d, "client_id"),
         date=_date(d, "date"),  # TODO : date de commande ou de livraison ?
-        lignes=tuple(
-            LigneCommande(
-                produit_code=_texte(ligne, "produit_code"),
-                quantite=_nombre(ligne, "quantite"),
-                prix_unitaire_ht=_nombre(ligne, "prix_unitaire_ht"),
-            )
-            for ligne in lignes
-            if isinstance(ligne, dict)
-        ),
+        lignes=tuple(ligne for ligne in converties if ligne is not None),
     )
 
 

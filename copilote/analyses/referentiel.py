@@ -4,6 +4,9 @@ Le `Referentiel` est chargé une fois depuis la `DataSource`, puis toutes les
 analyses travaillent dessus sans aucun accès réseau : elles sont pures,
 rapides et faciles à tester. Les index (commandes par client, ventes récentes
 par produit…) sont calculés à la demande puis mémorisés.
+
+Au chargement, les données inexploitables (références orphelines, doublons,
+lots périmés…) sont écartées : les analyses ne voient que des données cohérentes.
 """
 
 from __future__ import annotations
@@ -17,6 +20,7 @@ from functools import cached_property
 from copilote.datahub import DataSource
 from copilote.domaine import Client, ClientIntrouvable, Commande, Lot, Produit, ProduitIntrouvable
 
+from .exploitabilite import Ecart, filtrer_exploitables
 from .regles import REGLES_PAR_DEFAUT, ReglesMetier
 from .statistiques import Recurrence, produits_recurrents, recurrences
 
@@ -29,18 +33,27 @@ class Referentiel:
     commandes: tuple[Commande, ...]  # période analysée, tous clients, triées par date
     lots: tuple[Lot, ...]
     regles: ReglesMetier = REGLES_PAR_DEFAUT
+    ecarts: tuple[Ecart, ...] = ()  # enregistrements écartés au chargement (voir `exploitabilite`)
 
     @classmethod
     def charger(cls, source: DataSource, regles: ReglesMetier = REGLES_PAR_DEFAUT) -> Referentiel:
         aujourd_hui = source.date_du_jour()
         debut = aujourd_hui - timedelta(days=regles.periode_analyse_jours)
+        donnees = filtrer_exploitables(
+            aujourd_hui,
+            clients=source.get_clients(),
+            produits=source.get_products(),
+            commandes=source.get_order_history(depuis=debut),
+            lots=source.get_stock(),
+        )
         return cls(
             date_du_jour=aujourd_hui,
-            clients={c.id: c for c in source.get_clients()},
-            produits={p.code: p for p in source.get_products()},
-            commandes=tuple(source.get_order_history(depuis=debut)),
-            lots=tuple(source.get_stock()),
+            clients=donnees.clients,
+            produits=donnees.produits,
+            commandes=donnees.commandes,
+            lots=donnees.lots,
             regles=regles,
+            ecarts=donnees.ecarts,
         )
 
     # -- Accès unitaires ------------------------------------------------------------

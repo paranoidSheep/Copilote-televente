@@ -39,6 +39,23 @@ services:
       - caddy_config:/config
     networks: [interne]
 
+  # Facultatif : simulateur du datahub, pour éprouver DATASOURCE=http avant d'avoir accès au vrai datahub.
+  # Activation : `docker compose --profile simulateur up -d`, avec dans .env :
+  #   DATASOURCE=http, DATAHUB_URL=http://datahub-simulateur:8100, DATAHUB_TOKEN=<au choix>,
+  #   DATAHUB_DATE_REFERENCE=2026-10-23 (date du jeu fictif) et, pour voir le diagnostic
+  #   à l'œuvre, SIMULATEUR_OPTIONS=--anomalies
+  datahub-simulateur:
+    image: copilote-televente:latest
+    profiles: [simulateur]
+    restart: unless-stopped
+    env_file: .env                       # même DATAHUB_TOKEN que le copilote
+    command: python -m copilote.datahub.simulateur --hote 0.0.0.0 --port 8100 ${SIMULATEUR_OPTIONS:-}
+    healthcheck:
+      disable: true                      # la sonde de l'image vise le copilote (port 8000)
+    expose:
+      - "8100"
+    networks: [interne]
+
 volumes:
   donnees:
   caddy_donnees:

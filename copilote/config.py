@@ -10,6 +10,7 @@ from __future__ import annotations
 import os
 from collections.abc import Mapping
 from dataclasses import dataclass
+from datetime import date
 from enum import StrEnum
 from pathlib import Path
 
@@ -39,6 +40,7 @@ class ConfigDatahub:
     url: str | None = None
     token: str | None = None
     timeout_secondes: float = 10.0
+    date_reference: date | None = None  # date du jour figée (recette sur extraction ou simulateur)
 
 
 @dataclass(frozen=True, slots=True)
@@ -88,6 +90,9 @@ class Config:
                     url=env.get("DATAHUB_URL") or None,
                     token=env.get("DATAHUB_TOKEN") or None,
                     timeout_secondes=float(env.get("DATAHUB_TIMEOUT", "10")),
+                    date_reference=(
+                        date.fromisoformat(env["DATAHUB_DATE_REFERENCE"]) if env.get("DATAHUB_DATE_REFERENCE") else None
+                    ),
                 ),
                 dossier_donnees=Path(env.get("DOSSIER_DONNEES", str(DOSSIER_DONNEES_PAR_DEFAUT))),
                 chemin_journal_force=Path(env["JOURNAL_PATH"]) if env.get("JOURNAL_PATH") else None,

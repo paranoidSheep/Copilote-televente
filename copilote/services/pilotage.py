@@ -26,4 +26,5 @@ class ServicePilotage:
         return construire_plan_ecoulement(self._referentiels.obtenir())
 
     def televendeurs(self) -> list[str]:
-        return sorted({c.commercial for c in self._referentiels.obtenir().clients.values()})
+        # Un client sans télévendeur attribué (champ vide) n'ajoute pas de file « vide ».
+        return sorted({c.commercial for c in self._referentiels.obtenir().clients.values() if c.commercial})

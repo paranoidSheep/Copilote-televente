@@ -85,6 +85,37 @@ const scenarios = {
     await vendeuse.waitForSelector(".titre-page");
     await capture(vendeuse, "07-mes-resultats-televendeuse", false);
   },
+
+  // Copilote branché en HTTP sur le simulateur du datahub, avec anomalies injectées.
+  async "etape-2"() {
+    const bureau = await page(BUREAU);
+    await connecter(bureau, "responsable");
+    await bureau.goto(base + "/#/donnees");
+    await bureau.waitForSelector(".statut-diagnostic", { timeout: 30000 });
+    await capture(bureau, "01-donnees-diagnostic-bureau");
+
+    // Détail de quelques règles : ce que l'équipe ERP doit corriger, et pourquoi.
+    for (const libelle of ["Commande d'un client inconnu", "Lot périmé déclaré en stock", "Quantité anormale"]) {
+      await bureau.locator("details.regle summary", { hasText: libelle }).click();
+    }
+    await captureElement(bureau, "section.carte:has(details.regle)", "02-regles-qualite-detaillees");
+
+    const mobile = await page(MOBILE);
+    await connecter(mobile, "responsable");
+    await mobile.goto(base + "/#/donnees");
+    await mobile.waitForSelector(".statut-diagnostic", { timeout: 30000 });
+    await capture(mobile, "03-donnees-mobile", false);
+
+    const vendeuse = await page(MOBILE);
+    await connecter(vendeuse, "julie.moreau");
+    await capture(vendeuse, "04-file-via-datahub-mobile", false);
+    await vendeuse.click(".tuiles a");
+    await vendeuse.waitForSelector(".accroches");
+    await capture(vendeuse, "05-fiche-via-datahub-mobile", false);
+    await vendeuse.goto(base + "/#/donnees");
+    await vendeuse.waitForSelector(".message-erreur");
+    await capture(vendeuse, "06-donnees-refusees-televendeuse", false);
+  },
 };
 
 try {

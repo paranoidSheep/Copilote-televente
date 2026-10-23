@@ -11,7 +11,7 @@ export interface Contexte {
 
 export type Vue = (cible: HTMLElement, parametres: Record<string, string>, contexte: Contexte) => Promise<void>;
 
-export type Rubrique = "appels" | "clients" | "stock" | "tableau" | "labo";
+export type Rubrique = "appels" | "clients" | "stock" | "tableau" | "labo" | "donnees";
 
 interface Route {
   motif: RegExp;

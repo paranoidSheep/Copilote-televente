@@ -4,7 +4,8 @@
     python -m scripts.rapport_verification ... --capture docs/captures/etape-1/00-verification.png
 
 Contrôles : lint et formatage (ruff), typage strict (mypy), tests et couverture
-(pytest), cassettes de l'IA simulée, types TypeScript, compilation du frontend.
+(pytest), cassettes de l'IA simulée, types TypeScript, contrat du datahub,
+compilation du frontend.
 L'option --capture enregistre une image de la page avec Chromium (si disponible).
 """
 
@@ -135,10 +136,11 @@ def main() -> int:
             Controle("Typage strict (mypy --strict)", [python, "-m", "mypy"]),
             Controle(
                 "Tests et couverture (pytest)",
-                [python, "-m", "pytest", "-q", "--cov", "--cov-report=term", f"--junitxml={junit}"],
+                [python, "-m", "pytest", "--cov", "--cov-report=term", f"--junitxml={junit}"],  # -q via pyproject
             ),
             Controle("Cassettes de l'IA simulée", [python, "-m", "scripts.cassettes", "verifier"]),
             Controle("Types TypeScript à jour", [python, "-m", "scripts.generer_types_ts", "--verifier"]),
+            Controle("Contrat du datahub à jour", [python, "-m", "scripts.exporter_contrat_datahub", "--verifier"]),
         ]
         if shutil.which("tsc"):
             controles.append(

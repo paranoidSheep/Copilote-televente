@@ -64,6 +64,7 @@ export const api = {
     comptesRendus: (filtres = {}) => requete(url("/comptes-rendus", filtres)),
     statistiques: (jours) => requete(url("/statistiques", { jours })),
     planEcoulement: () => requete("/stock/plan-ecoulement"),
+    diagnostic: () => requete("/admin/diagnostic"),
     labo: {
         agent: (clientId) => requete(url("/labo/agent", { client_id: clientId })),
         outils: (clientId, produit) => requete(url(`/labo/clients/${id(clientId)}/outils`, { produit })),
