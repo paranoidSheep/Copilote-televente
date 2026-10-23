@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from pydantic import Field
+
+from .apprentissage import AUCUN_APPRENTISSAGE, ModeleAcceptation, RetourClients
 from .base import Resultat
 from .referentiel import Referentiel
 from .stock import nb_clients_similaires_acheteurs, situations_stock
@@ -16,6 +19,9 @@ class SuggestionCroisee(Resultat):
     nb_clients_similaires_acheteurs: int
     taux_adoption_pct: int
     en_stock_a_ecouler: bool
+    retour_clients: RetourClients | None = Field(
+        default=None, description="Acceptations et refus passés des établissements du même type"
+    )
 
 
 class SuggestionsCroisees(Resultat):
@@ -25,10 +31,13 @@ class SuggestionsCroisees(Resultat):
     produits: list[SuggestionCroisee]
 
 
-def analyser_suggestions(ref: Referentiel, client_id: str, limite: int = 5) -> SuggestionsCroisees:
+def analyser_suggestions(
+    ref: Referentiel, client_id: str, limite: int = 5, acceptation: ModeleAcceptation = AUCUN_APPRENTISSAGE
+) -> SuggestionsCroisees:
     """Produits jamais achetés par le client mais adoptés par les clients du même type.
 
-    Exemple : « 3 boulangeries sur 4 achètent aussi le pain aux raisins cru ».
+    Exemple : « 3 boulangeries sur 4 achètent aussi le pain aux raisins cru ». Les retours des
+    établissements du même type (`acceptation`) avancent ou reculent la suggestion.
     """
     client = ref.client(client_id)
     similaires = ref.clients_similaires(client_id)
@@ -56,9 +65,16 @@ def analyser_suggestions(ref: Referentiel, client_id: str, limite: int = 5) -> S
                     nb_clients_similaires_acheteurs=n,
                     taux_adoption_pct=round(taux * 100),
                     en_stock_a_ecouler=code in a_ecouler,
+                    retour_clients=acceptation.retour(code, client.type),
                 )
             )
-    suggestions.sort(key=lambda s: (-s.taux_adoption_pct, not s.en_stock_a_ecouler, s.code))
+    poids = regles.apprentissage_poids_adoption_pts
+
+    def rang(s: SuggestionCroisee) -> tuple[int, bool, str]:
+        modulation = poids * s.retour_clients.sens if s.retour_clients else 0
+        return (-(s.taux_adoption_pct + modulation), not s.en_stock_a_ecouler, s.code)
+
+    suggestions.sort(key=rang)
     return SuggestionsCroisees(
         client_id=client_id,
         type_client=client.type,

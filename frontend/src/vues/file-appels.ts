@@ -7,6 +7,7 @@ import { dateCourte, dateLongue, euros, LIBELLES } from "../format.js";
 import { preferences } from "../preferences.js";
 import type { Vue } from "../routeur.js";
 import type { PrioriteAppel } from "../types-api.js";
+import { carteAgenda, carteMaJournee } from "./journee.js";
 
 function tuile(appel: PrioriteAppel) {
   const c = appel.client;
@@ -49,7 +50,9 @@ export const vueFileAppels: Vue = async (cible, _parametres, contexte) => {
   try {
     // Le serveur impose sa propre file à un télévendeur ; un responsable choisit dans l'en-tête.
     const filtre = contexte.peut("voir_toutes_les_files") ? (preferences.televendeur ?? undefined) : undefined;
-    const file = await api.fileAppels(filtre);
+    const [file, journee] = await Promise.all([api.fileAppels(filtre), api.journee(filtre)]);
+    const agenda = journee.agenda;
+    const rappelsEnAttente = agenda.en_retard.length + agenda.aujourdhui.length + agenda.a_venir.length;
     const restants = file.appels.filter((a) => !a.deja_appele_aujourdhui);
     const hautes = restants.filter((a) => a.niveau === "haute").length;
     const appeles = file.appels.length - restants.length;
@@ -63,11 +66,17 @@ export const vueFileAppels: Vue = async (cible, _parametres, contexte) => {
       ),
       h(
         "div",
-        { classe: "kpis", attrs: { style: "margin-bottom:12px" } },
-        kpi(restants.length, "Clients à appeler"),
-        kpi(hautes, "Priorité haute", hautes ? "baisse" : ""),
-        kpi(`${appeles} / ${file.appels.length}`, "Déjà appelés"),
-        kpi(restants.filter((a) => a.rappel_prevu).length, "Rappels promis"),
+        { classe: "pile", attrs: { style: "margin-bottom:12px" } },
+        carteMaJournee(journee, filtre),
+        h(
+          "div",
+          { classe: "kpis" },
+          kpi(restants.length, "Clients à appeler"),
+          kpi(hautes, "Priorité haute", hautes ? "baisse" : ""),
+          kpi(`${appeles} / ${file.appels.length}`, "Déjà appelés"),
+          kpi(restants.filter((a) => a.rappel_prevu).length, "Rappels promis"),
+        ),
+        rappelsEnAttente ? carteAgenda(agenda) : null,
       ),
       file.appels.length
         ? h("ul", { classe: "tuiles" }, file.appels.map(tuile))

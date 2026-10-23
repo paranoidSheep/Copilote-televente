@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Response, status
 from fastapi.responses import PlainTextResponse
 
-from copilote.analyses import FileAppels
+from copilote.analyses import FileAppels, Journee
 from copilote.api.dependances import ApplicationDep, UtilisateurDep
 from copilote.api.schemas import CompteRenduEnregistre
 from copilote.comptes import Permission
@@ -24,6 +25,36 @@ def file_appels(app: ApplicationDep, utilisateur: UtilisateurDep, televendeur: s
     if not utilisateur.peut(Permission.VOIR_TOUTES_LES_FILES):
         televendeur = utilisateur.nom_affiche
     return app.pilotage.file_appels(televendeur)
+
+
+@routeur.get("/appels/journee", response_model=Journee)
+def journee(app: ApplicationDep, utilisateur: UtilisateurDep, televendeur: str | None = None) -> Journee:
+    """Ma journée : objectifs, agenda des rappels et avancement de la tournée."""
+    if not utilisateur.peut(Permission.VOIR_TOUTES_LES_FILES):
+        televendeur = utilisateur.nom_affiche
+    return app.pilotage.journee(televendeur)
+
+
+@routeur.get("/comptes-rendus/commandes.csv", response_class=Response)
+def export_commandes(
+    app: ApplicationDep,
+    utilisateur: UtilisateurDep,
+    jour: Annotated[date | None, Query(description="Jour exporté (AAAA-MM-JJ) ; aujourd'hui par défaut")] = None,
+    televendeur: str | None = None,
+) -> Response:
+    """Produits acceptés du jour, en CSV (Excel), pour la saisie dans l'ERP.
+
+    Un télévendeur n'exporte que ses propres comptes-rendus.
+    """
+    if not utilisateur.peut(Permission.VOIR_TOUTES_LES_FILES):
+        televendeur = utilisateur.nom_affiche
+    contenu = app.journal.export_commandes(jour, televendeur)
+    nom = f"commandes-{(jour or app.referentiels.obtenir().date_du_jour):%Y-%m-%d}.csv"
+    return Response(
+        contenu.encode("utf-8"),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{nom}"'},
+    )
 
 
 @routeur.post("/comptes-rendus", response_model=CompteRenduEnregistre, status_code=status.HTTP_201_CREATED)

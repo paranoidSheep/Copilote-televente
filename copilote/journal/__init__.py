@@ -1,6 +1,7 @@
 """Journal des appels : comptes-rendus saisis par les télévendeurs (stockage local)."""
 
 from .depot import DepotJournal, DepotMemoire, DepotSQLite
+from .export import commandes_csv
 from .modeles import (
     CompteRendu,
     Issue,
@@ -25,4 +26,5 @@ __all__ = [
     "SaisieCompteRendu",
     "StatistiquesAppels",
     "calculer_statistiques",
+    "commandes_csv",
 ]

@@ -15,8 +15,20 @@ import {
 import { h, remplacer } from "../dom.js";
 import { dateCourte, euros, heure, jours, LIBELLES, nombre, pourcentage, quantite } from "../format.js";
 import type { Contexte, Vue } from "../routeur.js";
-import type { Fiche, ModeLLM } from "../types-api.js";
+import type { AvancementTournee, Fiche, ModeLLM, RetourClients } from "../types-api.js";
+
+/** Ce que les établissements du même type ont répondu à cette offre (seulement s'il s'en dégage une tendance). */
+function retourClients(retour: RetourClients | null) {
+  if (!retour || retour.sens === 0) return null;
+  return h(
+    "div",
+    { classe: "meta", attrs: { title: retour.justification } },
+    badge(retour.sens > 0 ? "📈 souvent accepté" : "📉 souvent refusé", retour.sens > 0 ? "succes" : "attention"),
+    ` ${retour.acceptes} fois sur ${retour.proposes} par des établissements du même type`,
+  );
+}
 import { formulaireCompteRendu } from "./compte-rendu.js";
+import { bandeauTournee, filtreTelevendeur, suiteTournee } from "./journee.js";
 
 function entete(fiche: Fiche, contexte: Contexte, recharger: (mode: ModeLLM | undefined, regenerer: boolean) => void, modeCourant: ModeLLM | undefined) {
   const c = fiche.client;
@@ -143,6 +155,7 @@ function stock(fiche: Fiche) {
                 s.motifs.map((m) => [badge(LIBELLES.motif[m], m === "dlc_courte" ? "alerte" : "attention"), " "]),
                 `DLC ${dateCourte(s.dlc)} (J+${s.jours_avant_dlc}) · lot ${s.lot_id} · ${quantite(s.quantite_lot, s.unite)} dispo · ${LIBELLES.pertinence[s.pertinence].toLowerCase()}`,
               ),
+              retourClients(s.retour_clients),
               h("div", { classe: "argument" }, s.argument),
             ),
           ),
@@ -165,6 +178,7 @@ function suggestions(fiche: Fiche) {
           null,
           h("div", { classe: "entree" }, h("span", { classe: "nom" }, s.libelle), h("span", { classe: "prix" }, euros(s.prix_unitaire_ht))),
           h("div", { classe: "meta" }, `Adopté par ${s.taux_adoption_pct} % des établissements similaires`),
+          retourClients(s.retour_clients),
           h("div", { classe: "argument" }, s.argument),
         ),
       ),
@@ -197,6 +211,11 @@ function appelsPrecedents(fiche: Fiche) {
 
 export const vueFiche: Vue = async (cible, parametres, contexte) => {
   const clientId = parametres["id"] ?? "";
+  // Mode tournée (#/clients/C005?tournee=1) : bandeau d'avancement et enchaînement vers le client suivant.
+  let tournee: AvancementTournee | null = null;
+  if (parametres["tournee"]) {
+    tournee = (await api.journee(filtreTelevendeur(contexte)).catch(() => null))?.tournee ?? null;
+  }
 
   const afficher = async (mode: ModeLLM | undefined, regenerer: boolean): Promise<void> => {
     remplacer(cible, chargement("Préparation de la fiche d'appel…", "L'IA analyse l'historique, le stock et les appels précédents."));
@@ -210,6 +229,7 @@ export const vueFiche: Vue = async (cible, parametres, contexte) => {
     document.title = `${fiche.client.nom} — Fiche d'appel`;
     remplacer(
       cible,
+      tournee ? bandeauTournee(tournee, clientId) : null,
       h(
         "div",
         { classe: "grille fiche" },
@@ -229,7 +249,12 @@ export const vueFiche: Vue = async (cible, parametres, contexte) => {
           { classe: "pile" },
           stock(fiche),
           suggestions(fiche),
-          formulaireCompteRendu(fiche, contexte.session.utilisateur.nom_affiche, () => undefined),
+          formulaireCompteRendu(
+            fiche,
+            contexte.session.utilisateur.nom_affiche,
+            () => undefined,
+            tournee ? suiteTournee(tournee, clientId) : undefined,
+          ),
           appelsPrecedents(fiche),
           fiche.garde_fous.length
             ? repliable(`Corrections automatiques (${fiche.garde_fous.length})`, h("ul", null, fiche.garde_fous.map((g) => h("li", { classe: "petit" }, g.message))))

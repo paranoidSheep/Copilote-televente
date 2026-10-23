@@ -3,7 +3,14 @@ import { api } from "../api.js";
 import { badge, boutonCopier, carte, chargement, kpi, messageErreur, repliable, traceExecution, variationClasse, } from "../composants.js";
 import { h, remplacer } from "../dom.js";
 import { dateCourte, euros, heure, jours, LIBELLES, nombre, pourcentage, quantite } from "../format.js";
+/** Ce que les établissements du même type ont répondu à cette offre (seulement s'il s'en dégage une tendance). */
+function retourClients(retour) {
+    if (!retour || retour.sens === 0)
+        return null;
+    return h("div", { classe: "meta", attrs: { title: retour.justification } }, badge(retour.sens > 0 ? "📈 souvent accepté" : "📉 souvent refusé", retour.sens > 0 ? "succes" : "attention"), ` ${retour.acceptes} fois sur ${retour.proposes} par des établissements du même type`);
+}
 import { formulaireCompteRendu } from "./compte-rendu.js";
+import { bandeauTournee, filtreTelevendeur, suiteTournee } from "./journee.js";
 function entete(fiche, contexte, recharger, modeCourant) {
     const c = fiche.client;
     const h_ = fiche.habitudes;
@@ -30,13 +37,13 @@ function manquants(fiche) {
 }
 function stock(fiche) {
     return carte("Stock à écouler", fiche.stock_a_ecouler.length
-        ? h("ul", { classe: "liste" }, fiche.stock_a_ecouler.map((s) => h("li", null, h("div", { classe: "entree" }, h("span", { classe: "nom" }, s.libelle), h("span", { classe: "prix" }, s.remise_pct ? h("span", { classe: "barre" }, euros(s.prix_unitaire_ht), " ") : null, h("strong", null, euros(s.prix_propose_ht)), s.remise_pct ? [h("br"), h("span", { classe: "remise" }, `−${s.remise_pct} %`)] : null)), h("div", { classe: "meta" }, s.motifs.map((m) => [badge(LIBELLES.motif[m], m === "dlc_courte" ? "alerte" : "attention"), " "]), `DLC ${dateCourte(s.dlc)} (J+${s.jours_avant_dlc}) · lot ${s.lot_id} · ${quantite(s.quantite_lot, s.unite)} dispo · ${LIBELLES.pertinence[s.pertinence].toLowerCase()}`), h("div", { classe: "argument" }, s.argument))))
+        ? h("ul", { classe: "liste" }, fiche.stock_a_ecouler.map((s) => h("li", null, h("div", { classe: "entree" }, h("span", { classe: "nom" }, s.libelle), h("span", { classe: "prix" }, s.remise_pct ? h("span", { classe: "barre" }, euros(s.prix_unitaire_ht), " ") : null, h("strong", null, euros(s.prix_propose_ht)), s.remise_pct ? [h("br"), h("span", { classe: "remise" }, `−${s.remise_pct} %`)] : null)), h("div", { classe: "meta" }, s.motifs.map((m) => [badge(LIBELLES.motif[m], m === "dlc_courte" ? "alerte" : "attention"), " "]), `DLC ${dateCourte(s.dlc)} (J+${s.jours_avant_dlc}) · lot ${s.lot_id} · ${quantite(s.quantite_lot, s.unite)} dispo · ${LIBELLES.pertinence[s.pertinence].toLowerCase()}`), retourClients(s.retour_clients), h("div", { classe: "argument" }, s.argument))))
         : h("p", { classe: "vide" }, "Aucun produit à écouler pertinent pour ce client."), { compte: fiche.stock_a_ecouler.length });
 }
 function suggestions(fiche) {
     if (!fiche.suggestions.length)
         return null;
-    return carte("À proposer aussi", h("ul", { classe: "liste" }, fiche.suggestions.map((s) => h("li", null, h("div", { classe: "entree" }, h("span", { classe: "nom" }, s.libelle), h("span", { classe: "prix" }, euros(s.prix_unitaire_ht))), h("div", { classe: "meta" }, `Adopté par ${s.taux_adoption_pct} % des établissements similaires`), h("div", { classe: "argument" }, s.argument)))), { compte: fiche.suggestions.length });
+    return carte("À proposer aussi", h("ul", { classe: "liste" }, fiche.suggestions.map((s) => h("li", null, h("div", { classe: "entree" }, h("span", { classe: "nom" }, s.libelle), h("span", { classe: "prix" }, euros(s.prix_unitaire_ht))), h("div", { classe: "meta" }, `Adopté par ${s.taux_adoption_pct} % des établissements similaires`), retourClients(s.retour_clients), h("div", { classe: "argument" }, s.argument)))), { compte: fiche.suggestions.length });
 }
 function appelsPrecedents(fiche) {
     const appels = fiche.appels_precedents.appels;
@@ -46,6 +53,11 @@ function appelsPrecedents(fiche) {
 }
 export const vueFiche = async (cible, parametres, contexte) => {
     const clientId = parametres["id"] ?? "";
+    // Mode tournée (#/clients/C005?tournee=1) : bandeau d'avancement et enchaînement vers le client suivant.
+    let tournee = null;
+    if (parametres["tournee"]) {
+        tournee = (await api.journee(filtreTelevendeur(contexte)).catch(() => null))?.tournee ?? null;
+    }
     const afficher = async (mode, regenerer) => {
         remplacer(cible, chargement("Préparation de la fiche d'appel…", "L'IA analyse l'historique, le stock et les appels précédents."));
         let fiche;
@@ -57,9 +69,9 @@ export const vueFiche = async (cible, parametres, contexte) => {
             return;
         }
         document.title = `${fiche.client.nom} — Fiche d'appel`;
-        remplacer(cible, h("div", { classe: "grille fiche" }, h("div", { classe: "pile" }, entete(fiche, contexte, (m, r) => void afficher(m, r), mode), fiche.accroches.length
+        remplacer(cible, tournee ? bandeauTournee(tournee, clientId) : null, h("div", { classe: "grille fiche" }, h("div", { classe: "pile" }, entete(fiche, contexte, (m, r) => void afficher(m, r), mode), fiche.accroches.length
             ? carte("À dire au téléphone", h("ol", { classe: "accroches" }, fiche.accroches.map((a) => h("li", null, `« ${a} »`))), { classe: "accent" })
-            : null, fiche.points_attention.length ? carte("Points d'attention", h("ul", null, fiche.points_attention.map((p) => h("li", null, p))), { classe: "alerte" }) : null, habitudes(fiche), manquants(fiche)), h("div", { classe: "pile" }, stock(fiche), suggestions(fiche), formulaireCompteRendu(fiche, contexte.session.utilisateur.nom_affiche, () => undefined), appelsPrecedents(fiche), fiche.garde_fous.length
+            : null, fiche.points_attention.length ? carte("Points d'attention", h("ul", null, fiche.points_attention.map((p) => h("li", null, p))), { classe: "alerte" }) : null, habitudes(fiche), manquants(fiche)), h("div", { classe: "pile" }, stock(fiche), suggestions(fiche), formulaireCompteRendu(fiche, contexte.session.utilisateur.nom_affiche, () => undefined, tournee ? suiteTournee(tournee, clientId) : undefined), appelsPrecedents(fiche), fiche.garde_fous.length
             ? repliable(`Corrections automatiques (${fiche.garde_fous.length})`, h("ul", null, fiche.garde_fous.map((g) => h("li", { classe: "petit" }, g.message))))
             : null, fiche.trace ? repliable("Coulisses de l'IA", traceExecution(fiche.trace)) : null, repliable("Version texte", h("pre", { classe: "code" }, fiche.texte)))));
     };

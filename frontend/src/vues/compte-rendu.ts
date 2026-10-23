@@ -45,7 +45,13 @@ function controleReponse(etat: EtatLigne, auChangement: () => void) {
   return groupe;
 }
 
-export function formulaireCompteRendu(fiche: Fiche, auteur: string, apresEnregistrement: () => void): HTMLElement {
+/** `suite` : pendant une tournée, le lien vers le client suivant (ou le bilan) remplace le retour à la file. */
+export function formulaireCompteRendu(
+  fiche: Fiche,
+  auteur: string,
+  apresEnregistrement: () => void,
+  suite?: { libelle: string; lien: string },
+): HTMLElement {
   const etats: EtatLigne[] = fiche.panier.lignes.map((ligne) => ({ ligne, reponse: "sans_reponse", quantite: ligne.quantite }));
   let issueChoisieManuellement = false;
 
@@ -149,7 +155,12 @@ export function formulaireCompteRendu(fiche: Fiche, auteur: string, apresEnregis
                     h("div", { classe: "ligne" }, boutonCopier(() => resultat.texte_saisie_erp, "Copier le bon")),
                   )
                 : null,
-              h("div", { classe: "ligne" }, h("a", { classe: "bouton", attrs: { href: "#/" } }, "Retour à la file d'appels")),
+              h(
+                "div",
+                { classe: "ligne" },
+                suite ? h("a", { classe: "bouton principal", attrs: { href: suite.lien } }, suite.libelle) : null,
+                h("a", { classe: suite ? "bouton discret" : "bouton", attrs: { href: "#/" } }, "Retour à la file d'appels"),
+              ),
             );
             apresEnregistrement();
           } catch (erreur) {

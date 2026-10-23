@@ -6,6 +6,13 @@ export interface AchatClient {
   quantite: number;
 }
 
+export interface AgendaRappels {
+  date_du_jour: string;
+  en_retard: RappelAgenda[];
+  aujourdhui: RappelAgenda[];
+  a_venir: RappelAgenda[];
+}
+
 export interface AppelPrecedent {
   jour: string;
   televendeur: string;
@@ -14,6 +21,14 @@ export interface AppelPrecedent {
   rappel_le: string | null;
   produits_acceptes: string[];
   produits_refuses: string[];
+}
+
+/** La tournée suit la file d'appels, par priorité ; elle avance à chaque compte-rendu. */
+export interface AvancementTournee {
+  total: number;
+  faits: number;
+  etapes: EtapeTournee[];
+  prochain: PrioriteAppel | null;
 }
 
 export interface CaMensuel {
@@ -147,6 +162,13 @@ export interface DetailsProduit {
   ventes_journalieres: number;
 }
 
+export interface EtapeTournee {
+  client_id: string;
+  nom: string;
+  score: number;
+  fait: boolean;
+}
+
 export interface EtapeTrace {
   type: TypeEtape;
   nom: string;
@@ -255,6 +277,14 @@ export type Issue = "commande" | "pas_de_besoin" | "rappeler" | "injoignable";
 
 export type JourSemaine = "lundi" | "mardi" | "mercredi" | "jeudi" | "vendredi" | "samedi" | "dimanche";
 
+export interface Journee {
+  date_du_jour: string;
+  televendeur: string | null;
+  objectifs: ObjectifsJour;
+  agenda: AgendaRappels;
+  tournee: AvancementTournee;
+}
+
 export type JsonValue = unknown;
 
 export interface LigneCompteRendu_Input {
@@ -345,6 +375,19 @@ export type MotifEcoulement = "dlc_courte" | "surstock";
 
 export type NiveauPriorite = "haute" | "moyenne" | "basse";
 
+export interface Objectif {
+  realise: number;
+  cible: number;
+  pct: number;
+}
+
+export interface ObjectifsJour {
+  appels: Objectif;
+  ca_accepte_ht: Objectif;
+  commandes: number;
+  taux_transformation_pct: number | null;
+}
+
 /** D'où vient la proposition faite au client. */
 export type Origine = "manquant" | "stock" | "suggestion" | "autre";
 
@@ -414,6 +457,16 @@ export interface RaisonPriorite {
   points: number;
 }
 
+export interface RappelAgenda {
+  client: Client;
+  rappel_le: string;
+  statut: StatutRappel;
+  ecart_jours: number;
+  demande_le: string;
+  demande_par: string;
+  notes: string;
+}
+
 export interface RapportDiagnostic {
   source: string;
   date_reference: string;
@@ -459,6 +512,15 @@ export interface ResumeCampagne {
   date_donnees: string;
   nb_clients: number;
   syntheses: SyntheseRedacteur[];
+}
+
+/** Ce que les établissements du même type ont répondu à cette offre. */
+export interface RetourClients {
+  sens: number;
+  acceptes: number;
+  proposes: number;
+  taux_acceptation_pct: number;
+  justification: string;
 }
 
 export type Role = "televendeur" | "responsable" | "admin";
@@ -550,6 +612,8 @@ export type StatutDiagnostic = "conforme" | "a_surveiller" | "a_corriger" | "lec
 
 export type StatutManquant = "en_retard" | "decroche";
 
+export type StatutRappel = "en_retard" | "aujourdhui" | "a_venir";
+
 export interface StockFiche {
   code: string;
   libelle: string;
@@ -568,6 +632,7 @@ export interface StockFiche {
   prix_remise_ht: number;
   pertinence: Pertinence;
   raison_pertinence: string;
+  retour_clients: RetourClients | null;
   remise_pct: number;
   prix_propose_ht: number;
   quantite_conseillee: number;
@@ -583,6 +648,7 @@ export interface SuggestionFiche {
   nb_clients_similaires_acheteurs: number;
   taux_adoption_pct: number;
   en_stock_a_ecouler: boolean;
+  retour_clients: RetourClients | null;
   argument: string;
 }
 

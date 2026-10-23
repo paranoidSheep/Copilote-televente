@@ -60,6 +60,9 @@ export const api = {
     fiche: (clientId, mode, regenerer = false) => requete(url(`/clients/${id(clientId)}/fiche`, { mode, regenerer: regenerer || undefined })),
     produit: (clientId, code) => requete(`/clients/${id(clientId)}/produits/${id(code)}`),
     fileAppels: (televendeur) => requete(url("/appels/file", { televendeur })),
+    journee: (televendeur) => requete(url("/appels/journee", { televendeur })),
+    /** Lien de téléchargement (le cookie de session suffit à l'authentifier). */
+    exportCommandes: (televendeur) => url("/comptes-rendus/commandes.csv", { televendeur }),
     enregistrerCompteRendu: (saisie) => requete("/comptes-rendus", json("POST", saisie)),
     comptesRendus: (filtres = {}) => requete(url("/comptes-rendus", filtres)),
     statistiques: (jours) => requete(url("/statistiques", { jours })),

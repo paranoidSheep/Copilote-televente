@@ -373,3 +373,13 @@ details.regle .tableau td:first-child { width: 1%; white-space: nowrap; padding-
 .critere .nombre { text-align: right; }
 label.puce { cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; }
 details.regle > summary .badge { margin-left: 2px; }
+
+/* ------------------------------------------------------------ Journée du télévendeur */
+
+.objectif .jauge { display: block; height: 10px; border-radius: 5px; margin: 6px 0 4px; }
+.objectif .jauge.atteint > span { background: var(--succes); }
+.carte.journee { border-color: var(--primaire); }
+.sous-titre { font-size: .76rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--texte-doux); margin: 10px 0 6px; }
+.sous-titre:first-child { margin-top: 0; }
+.bandeau-tournee { background: var(--primaire-clair); border-color: transparent; margin-bottom: 12px; }
+.bandeau-tournee .jauge { display: block; height: 6px; margin-top: 8px; background: var(--carte); }

@@ -4,12 +4,22 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-from copilote.analyses import FileAppels, PlanEcoulement, construire_file_appels, construire_plan_ecoulement
+from copilote.analyses import (
+    FileAppels,
+    Journee,
+    PlanEcoulement,
+    avancement_tournee,
+    construire_agenda,
+    construire_file_appels,
+    construire_plan_ecoulement,
+    objectifs_du_jour,
+)
 from copilote.journal import DepotJournal
 
 from .referentiel import FournisseurReferentiel
 
 JOURS_HISTORIQUE_APPELS = 30  # appels récents pris en compte (rappels, refus, « déjà appelé »)
+JOURS_HISTORIQUE_AGENDA = 90  # un rappel promis reste à l'agenda tant qu'il n'est pas traité
 
 
 class ServicePilotage:
@@ -21,6 +31,21 @@ class ServicePilotage:
         ref = self._referentiels.obtenir()
         depuis = datetime.combine(ref.date_du_jour - timedelta(days=JOURS_HISTORIQUE_APPELS), datetime.min.time())
         return construire_file_appels(ref, self._journal.lister(depuis=depuis), televendeur)
+
+    def journee(self, televendeur: str | None = None) -> Journee:
+        """Objectifs du jour, agenda des rappels et avancement de la tournée."""
+        ref = self._referentiels.obtenir()
+        depuis = datetime.combine(ref.date_du_jour - timedelta(days=JOURS_HISTORIQUE_AGENDA), datetime.min.time())
+        comptes_rendus = self._journal.lister(depuis=depuis)
+        return Journee(
+            date_du_jour=ref.date_du_jour,
+            televendeur=televendeur,
+            objectifs=objectifs_du_jour(
+                comptes_rendus, ref.date_du_jour, ref.regles, televendeur, nb_televendeurs=len(self.televendeurs())
+            ),
+            agenda=construire_agenda(ref, comptes_rendus, televendeur),
+            tournee=avancement_tournee(self.file_appels(televendeur)),
+        )
 
     def plan_ecoulement(self) -> PlanEcoulement:
         return construire_plan_ecoulement(self._referentiels.obtenir())

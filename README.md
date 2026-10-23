@@ -5,13 +5,15 @@ Il s'appuie sur les données de l'ERP, lues en **lecture seule** via le datahub,
 
 | Écran | À quoi il sert |
 |---|---|
-| **Appels du jour** | La liste des clients à appeler, triée par priorité. Chaque client a un score sur 100 et ses raisons : rappel promis, jour de commande habituel, retard, produits décrochés, lots à DLC courte, poids du client, tendance. |
-| **Fiche d'appel** | Ce qu'il faut savoir avant de décrocher : habitudes, produits habituels non commandés, stock à écouler avec la remise suggérée, suggestions croisées et 2 ou 3 phrases d'accroche. Elle est rédigée par l'IA. |
+| **Appels du jour** | La journée du télévendeur : objectifs (appels, CA accepté), **tournée** à démarrer, agenda des rappels et export CSV des commandes du jour. Puis les clients à appeler, triés par priorité, chacun avec un score sur 100 et ses raisons (rappel promis, jour de commande habituel, retard, produits décrochés, lots à DLC courte, poids du client, tendance). |
+| **Tournée** | Les fiches s'enchaînent dans l'ordre de priorité. Après chaque compte-rendu, le client suivant est proposé ; on peut passer un client. Un bilan clôt la tournée. |
+| **Fiche d'appel** | Ce qu'il faut savoir avant de décrocher : habitudes, produits habituels non commandés, stock à écouler avec la remise suggérée, suggestions croisées et 2 ou 3 phrases d'accroche. Elle est rédigée par l'IA. Les offres « souvent acceptées » ou « souvent refusées » par les établissements du même type sont signalées et reclassées. |
 | **Compte-rendu** | Après l'appel, le panier proposé ligne par ligne (accepté / refusé), l'issue et un rappel éventuel. Le copilote produit alors le **bon à saisir dans l'ERP**. |
 | **Vue 360** | Le chiffre d'affaires mensuel, la répartition des achats, les produits récurrents et l'historique des appels d'un client. |
 | **Stock** | Le plan d'écoulement : pour chaque lot à DLC courte ou en surstock, les clients à qui le proposer et la part du lot qu'ils pourraient absorber. |
 | **Suivi** | Les taux d'acceptation par type de proposition, le CA généré, les appels transformés en commande et les résultats par télévendeur. |
-| **Labo** | Pour l'équipe projet : ce que l'IA voit (prompt, outils et leurs schémas, résultats bruts) et la comparaison des rédacteurs côte à côte. |
+| **Labo** | Pour l'équipe projet : ce que l'IA voit (prompt, outils et leurs schémas, résultats bruts), la comparaison des rédacteurs côte à côte et la **qualité IA** (banc d'évaluation). |
+| **Données** | Pour les responsables : diagnostic de la source (connexion, contrat d'interface, qualité des données ERP). |
 
 > Toutes les données du dépôt sont **fictives** : 30 clients, 80 produits, 6 mois de commandes et des lots avec DLC, générés par un script avec une graine fixe.
 
@@ -100,6 +102,15 @@ Le fournisseur simulé suit le même protocole que l'API. Il exige notamment le 
 
 Il est testé à travers le vrai SDK, avec un transport HTTP simulé : le corps des requêtes et la traduction des erreurs (429, 401, 5xx) sont vérifiés.
 
+### Apprendre des retours clients
+
+Chaque compte-rendu indique si les offres (stock à écouler, suggestions) ont été acceptées ou refusées. Le copilote en tire un **taux d'acceptation par produit et par type d'établissement**, sur 90 jours, tous télévendeurs confondus (`copilote/analyses/apprentissage.py`) :
+- le taux est **lissé** vers la moyenne, et aucune conclusion n'est tirée sous 3 propositions : deux refus ne suffisent pas à écarter un produit ;
+- un produit nettement plus accepté que la moyenne (de 15 points ou plus) passe devant, un produit nettement plus refusé recule. La modulation vaut une demi-marche de pertinence : un produit habituel souvent refusé reste devant un produit simplement déjà acheté ;
+- la justification est lisible dans la fiche (« 📈 souvent accepté : 3 fois sur 3 par des établissements du même type ») et transmise à l'IA par ses outils.
+
+Les seuils sont réglables dans `copilote/analyses/regles.py`, comme les objectifs du jour (`objectif_appels_jour`, `objectif_ca_jour_ht`).
+
 ### Mesurer la qualité : le banc d'évaluation
 
 Avant de passer à Claude en production, et à chaque modification du prompt, le **banc d'évaluation** (`copilote/evaluation/`) rédige la fiche de chaque client avec chaque rédacteur. Il note chaque fiche sur des critères **vérifiables**, sans IA juge :
@@ -132,7 +143,7 @@ Le code est organisé en couches : chaque couche ne dépend que des couches au-d
 | `copilote/domaine` | Objets métier immuables (client, produit, commande, lot) et erreurs |
 | `copilote/datahub` | Interface `DataSource` en lecture seule, source simulée, client REST du vrai datahub et cache |
 | `copilote/journal` | Comptes-rendus d'appels : modèles, stockage SQLite **local**, statistiques |
-| `copilote/analyses` | Calculs métier purs sur un `Referentiel` (instantané indexé, débarrassé des données inexploitables). Toutes les règles sont dans `regles.py`. |
+| `copilote/analyses` | Calculs métier purs sur un `Referentiel` (instantané indexé, débarrassé des données inexploitables) : habitudes, manquants, stock, suggestions, priorités, apprentissage des retours, journée. Toutes les règles sont dans `regles.py`. |
 | `copilote/diagnostic` | Diagnostic des données : mesures de connexion, vérification du contrat d'interface, règles de qualité |
 | `copilote/evaluation` | Banc d'évaluation des fiches : critères, synthèse par rédacteur, tarifs, historique SQLite, rapport Markdown |
 | `copilote/fiche` | Modèle de la fiche, assemblage avec garde-fous, repli sans IA, panier proposé, rendu texte |
@@ -171,6 +182,8 @@ La documentation interactive est disponible sur `/docs`. Endpoints principaux :
 | GET | `/clients/{id}/fiche` | Fiche d'appel (`mode=anthropic\|simule\|repli`, `regenerer=true`). Version texte : `/fiche.txt`. |
 | GET | `/clients/{id}/produits/{code}` | Détail d'un produit pour ce client |
 | GET | `/appels/file` | File d'appels du jour (`televendeur`) |
+| GET | `/appels/journee` | Objectifs du jour, agenda des rappels, avancement de la tournée (`televendeur`) |
+| GET | `/comptes-rendus/commandes.csv` | Produits acceptés du jour en CSV pour l'ERP ou Excel (`jour`, `televendeur`) |
 | POST | `/comptes-rendus` | Enregistre un compte-rendu dans le journal **local** et renvoie le bon à saisir dans l'ERP |
 | GET | `/comptes-rendus`, `/comptes-rendus/{id}/saisie-erp` | Historique et bon de saisie |
 | GET | `/statistiques` | Indicateurs d'efficacité (`jours`) |
@@ -236,6 +249,7 @@ Les tests sont organisés par couche :
 | `test_simulateur.py` | Simulateur du datahub, contrat exporté, chemin `DATASOURCE=http` de bout en bout sur un vrai serveur HTTP |
 | `test_diagnostic.py` | Mise à l'écart des données inexploitables, règles de qualité, contrat non respecté, source en panne, API, ligne de commande |
 | `test_evaluation.py` | Critères du banc, tarifs, synthèse, campagnes (synchrones et en arrière-plan), historique SQLite, API, ligne de commande |
+| `test_journee.py` | Apprentissage des retours (lissage, reclassement), agenda des rappels, objectifs, tournée, export CSV |
 
 ## Brancher le vrai datahub
 

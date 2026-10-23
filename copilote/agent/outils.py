@@ -17,6 +17,8 @@ from typing import Protocol
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError
 
 from copilote.analyses import (
+    AUCUN_APPRENTISSAGE,
+    ModeleAcceptation,
     Referentiel,
     analyser_habitudes,
     analyser_manquants,
@@ -128,8 +130,16 @@ def definition_soumission() -> DefinitionOutil:
     )
 
 
-def creer_boite_outils(ref: Referentiel, client_id: str, comptes_rendus: Sequence[CompteRendu]) -> BoiteAOutils:
-    """Outils de données, verrouillés sur `client_id` et sur l'instantané `ref`."""
+def creer_boite_outils(
+    ref: Referentiel,
+    client_id: str,
+    comptes_rendus: Sequence[CompteRendu],
+    acceptation: ModeleAcceptation = AUCUN_APPRENTISSAGE,
+) -> BoiteAOutils:
+    """Outils de données, verrouillés sur `client_id` et sur l'instantané `ref`.
+
+    `acceptation` : retours des clients (apprentissage), pour que l'IA voie le même classement que la fiche.
+    """
     ref.client(client_id)  # lève ClientIntrouvable
 
     def outil_client(nom: str, description: str, fonction: Callable[[EntreeClient], BaseModel]) -> Outil[EntreeClient]:
@@ -152,13 +162,15 @@ def creer_boite_outils(ref: Referentiel, client_id: str, comptes_rendus: Sequenc
             outil_client(
                 "stock_a_ecouler",
                 "Produits à écouler (DLC courte ou surstock) pertinents pour ce client : lot prioritaire, DLC, "
-                "remise suggérée (un maximum à ne pas dépasser) et raison de la pertinence.",
-                lambda e: analyser_stock_client(ref, e.client_id),
+                "remise suggérée (un maximum à ne pas dépasser), raison de la pertinence et retour_clients "
+                "(acceptations et refus passés des établissements du même type).",
+                lambda e: analyser_stock_client(ref, e.client_id, acceptation=acceptation),
             ),
             outil_client(
                 "suggestions_croisees",
-                "Produits jamais achetés par ce client mais adoptés par au moins la moitié des clients du même type.",
-                lambda e: analyser_suggestions(ref, e.client_id),
+                "Produits jamais achetés par ce client mais adoptés par au moins la moitié des clients du même type, "
+                "avec retour_clients (acceptations et refus passés des établissements du même type).",
+                lambda e: analyser_suggestions(ref, e.client_id, acceptation=acceptation),
             ),
             outil_client(
                 "historique_appels",

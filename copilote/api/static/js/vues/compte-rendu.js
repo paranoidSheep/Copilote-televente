@@ -29,7 +29,8 @@ function controleReponse(etat, auChangement) {
     groupe.append(...boutons);
     return groupe;
 }
-export function formulaireCompteRendu(fiche, auteur, apresEnregistrement) {
+/** `suite` : pendant une tournée, le lien vers le client suivant (ou le bilan) remplace le retour à la file. */
+export function formulaireCompteRendu(fiche, auteur, apresEnregistrement, suite) {
     const etats = fiche.panier.lignes.map((ligne) => ({ ligne, reponse: "sans_reponse", quantite: ligne.quantite }));
     let issueChoisieManuellement = false;
     const total = h("span", { classe: "total nombre" });
@@ -95,7 +96,7 @@ export function formulaireCompteRendu(fiche, auteur, apresEnregistrement) {
                     });
                     remplacer(formulaire, h("p", { classe: "message-succes" }, `Compte-rendu enregistré (${LIBELLES.issue[resultat.compte_rendu.issue]}).`), resultat.compte_rendu.issue === "commande"
                         ? h("div", { classe: "pile" }, h("div", { classe: "gras" }, "À saisir dans l'ERP"), h("pre", { classe: "code" }, resultat.texte_saisie_erp), h("div", { classe: "ligne" }, boutonCopier(() => resultat.texte_saisie_erp, "Copier le bon")))
-                        : null, h("div", { classe: "ligne" }, h("a", { classe: "bouton", attrs: { href: "#/" } }, "Retour à la file d'appels")));
+                        : null, h("div", { classe: "ligne" }, suite ? h("a", { classe: "bouton principal", attrs: { href: suite.lien } }, suite.libelle) : null, h("a", { classe: suite ? "bouton discret" : "bouton", attrs: { href: "#/" } }, "Retour à la file d'appels")));
                     apresEnregistrement();
                 }
                 catch (erreur) {

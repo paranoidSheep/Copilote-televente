@@ -7,7 +7,7 @@ Ce plan est suivi au fil de l'eau : chaque case est cochée quand l'élément es
 | 1 | Prêt pour le VPS : conteneur, HTTPS, comptes utilisateurs | ✅ livrée |
 | 2 | Brancher le datahub sans attendre : simulateur REST et contrôle qualité des données | ✅ livrée |
 | 3 | Mesurer la qualité de l'IA : banc d'évaluation | ✅ livrée |
-| 4 | La journée du télévendeur : mode tournée, rappels, apprentissage des retours | ⏳ en cours |
+| 4 | La journée du télévendeur : mode tournée, rappels, apprentissage des retours | ✅ livrée |
 
 ---
 
@@ -75,12 +75,19 @@ Ce plan est suivi au fil de l'eau : chaque case est cochée quand l'élément es
 
 **Pourquoi.** Le copilote doit accompagner la séance d'appels du début à la fin, et ses propositions doivent s'améliorer avec les retours des clients.
 
-- [ ] Mode tournée : enchaîner les fiches dans l'ordre de priorité, passer au client suivant après le compte-rendu, suivre la progression
-- [ ] Agenda des rappels (aujourd'hui, en retard, à venir)
-- [ ] Objectifs du jour (appels, CA accepté) avec progression
-- [ ] Apprentissage des retours : le taux d'acceptation passé (par produit et type de client) module la pertinence des propositions de stock et des suggestions, avec une justification lisible
-- [ ] Export CSV des commandes acceptées du jour (pour import manuel dans l'ERP)
-- [ ] Tests et captures (tournée, agenda, objectifs)
+- [x] Mode tournée : enchaîner les fiches dans l'ordre de priorité, passer au client suivant après le compte-rendu, suivre la progression
+- [x] Agenda des rappels (aujourd'hui, en retard, à venir)
+- [x] Objectifs du jour (appels, CA accepté) avec progression
+- [x] Apprentissage des retours : le taux d'acceptation passé (par produit et type de client) module la pertinence des propositions de stock et des suggestions, avec une justification lisible
+- [x] Export CSV des commandes acceptées du jour (pour import manuel dans l'ERP)
+- [x] Tests et captures (tournée, agenda, objectifs)
+
+**Livré.**
+- **Journée.** « Appels du jour » ouvre sur la journée : objectifs (appels, CA accepté), tournée, agenda des rappels et export CSV. Un responsable voit la journée de l'équipe, avec des objectifs cumulés.
+- **Tournée.** Elle ne stocke aucun état : elle se déduit de la file d'appels et du journal. Un bandeau suit la progression, avec « Passer ce client » ; après chaque compte-rendu, « Client suivant » ; un bilan la termine.
+- **Apprentissage.** Taux lissé par produit et type d'établissement (au moins 3 propositions), modulation d'une demi-marche, justification visible dans la fiche et transmise à l'IA.
+- **Export CSV.** Prévu pour Excel en français (séparateur « ; », virgule décimale, UTF-8 avec BOM), avec neutralisation des formules. Un télévendeur n'exporte que ses commandes.
+- **Captures.** Elles sont dans [`captures/etape-4/`](captures/etape-4/) : tournée sur mobile, bilan, export ouvert dans un tableur, journée de l'équipe, apprentissage.
 
 ---
 
@@ -92,3 +99,4 @@ Ce plan est suivi au fil de l'eau : chaque case est cochée quand l'élément es
 | 23/10/2026 | 1 | Docker + Caddy HTTPS, comptes et rôles, sessions signées, droits, journaux JSON, sauvegardes, guide VPS, 164 tests |
 | 23/10/2026 | 2 | Simulateur REST, contrat OpenAPI, mise à l'écart des données inexploitables, diagnostic (écran, API, CLI), profil Docker `simulateur`, 208 tests |
 | 23/10/2026 | 3 | Corrections typées, banc d'évaluation (critères, historique, écran Qualité IA, CLI, CI), 2 défauts corrigés et 1 amélioration du prompt, 233 tests |
+| 23/10/2026 | 4 | Journée (objectifs, agenda, tournée), apprentissage des retours clients, export CSV pour l'ERP, 244 tests |

@@ -6,12 +6,12 @@ import threading
 import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime, timedelta
 
 from copilote.agent import RedacteurIA, creer_boite_outils
 from copilote.agent.llm import FournisseurLLM
 from copilote.agent.redacteur import ErreurRedaction
-from copilote.analyses import ContexteClient, construire_contexte
+from copilote.analyses import ContexteClient, ModeleAcceptation, apprendre, construire_contexte
 from copilote.config import ModeLLM
 from copilote.fiche import Fiche, ModeFiche, TraceExecution, assembler_fiche, rediger_sans_ia
 from copilote.horloge import Horloge
@@ -80,6 +80,14 @@ class ServiceFiches:
             self._cache[cle] = fiche
         return fiche
 
+    def apprentissage(self) -> ModeleAcceptation:
+        """Taux d'acceptation des offres, appris sur les comptes-rendus de tous les télévendeurs."""
+        ref = self._referentiels.obtenir()
+        depuis = datetime.combine(
+            ref.date_du_jour - timedelta(days=ref.regles.apprentissage_fenetre_jours), datetime.min.time()
+        )
+        return apprendre(self._journal.lister(depuis=depuis), ref.clients, ref.date_du_jour, ref.regles)
+
     def produire(self, client_id: str, mode: ModeLLM | None = None) -> Production:
         """Rédige une fiche sans passer par le cache (banc d'évaluation, comparaison des rédacteurs).
 
@@ -89,7 +97,8 @@ class ServiceFiches:
         mode = mode or self.mode_defaut
         ref = self._referentiels.obtenir()
         comptes_rendus = self._journal.lister(client_id=client_id)
-        contexte = construire_contexte(ref, client_id, comptes_rendus)
+        acceptation = self.apprentissage()
+        contexte = construire_contexte(ref, client_id, comptes_rendus, acceptation)
         maintenant = self._horloge.maintenant()
 
         def repli(avertissement: str | None, trace: TraceExecution | None = None) -> Fiche:
@@ -110,7 +119,9 @@ class ServiceFiches:
         else:
             try:
                 resultat = RedacteurIA(fournisseur).rediger(
-                    contexte.habitudes.client, ref.date_du_jour, creer_boite_outils(ref, client_id, comptes_rendus)
+                    contexte.habitudes.client,
+                    ref.date_du_jour,
+                    creer_boite_outils(ref, client_id, comptes_rendus, acceptation),
                 )
                 fiche = assembler_fiche(
                     contexte,

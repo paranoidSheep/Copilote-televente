@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from copilote.domaine import ErreurCopilote
 from copilote.fiche import formatage as fmt
@@ -15,6 +15,7 @@ from copilote.journal import (
     Reponse,
     StatistiquesAppels,
     calculer_statistiques,
+    commandes_csv,
 )
 
 from .referentiel import FournisseurReferentiel
@@ -61,6 +62,18 @@ class ServiceJournal:
         if televendeur is not None:
             comptes_rendus = [cr for cr in comptes_rendus if cr.televendeur == televendeur]
         return calculer_statistiques(comptes_rendus)
+
+    def export_commandes(self, jour: date | None = None, televendeur: str | None = None) -> str:
+        """Produits acceptés du jour (par défaut aujourd'hui), au format CSV pour l'ERP ou un tableur."""
+        ref = self._referentiels.obtenir()
+        jour = jour or ref.date_du_jour
+        debut = datetime.combine(jour, datetime.min.time())
+        comptes_rendus = [
+            cr
+            for cr in self._depot.lister(depuis=debut)
+            if cr.cree_le.date() == jour and (televendeur is None or cr.televendeur == televendeur)
+        ]
+        return commandes_csv(comptes_rendus, {c.id: c.nom for c in ref.clients.values()})
 
     def texte_saisie_erp(self, compte_rendu: CompteRendu) -> str:
         """Récapitulatif des produits acceptés, à saisir dans l'ERP par le télévendeur."""

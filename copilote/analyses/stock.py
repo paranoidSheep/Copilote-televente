@@ -5,8 +5,11 @@ from __future__ import annotations
 from datetime import date
 from enum import IntEnum, StrEnum
 
+from pydantic import Field
+
 from copilote.domaine import Famille, Produit
 
+from .apprentissage import AUCUN_APPRENTISSAGE, ModeleAcceptation, RetourClients
 from .base import Resultat, memoise_par_referentiel
 from .referentiel import Referentiel
 from .regles import ReglesMetier
@@ -53,6 +56,9 @@ class SituationStock(Resultat):
 class PropositionStock(SituationStock):
     pertinence: Pertinence
     raison_pertinence: str
+    retour_clients: RetourClients | None = Field(
+        default=None, description="Acceptations et refus passés des établissements du même type"
+    )
 
 
 class StockAEcouler(Resultat):
@@ -202,15 +208,35 @@ def evaluer_pertinence(ref: Referentiel, client_id: str, code: str) -> tuple[Per
     return Pertinence.AUCUNE, "aucun lien avec les achats du client ou de clients similaires"
 
 
-def analyser_stock_client(ref: Referentiel, client_id: str, limite: int = 6) -> StockAEcouler:
-    """Produits à écouler pertinents pour ce client, du plus au moins pertinent puis par urgence."""
+def analyser_stock_client(
+    ref: Referentiel, client_id: str, limite: int = 6, acceptation: ModeleAcceptation = AUCUN_APPRENTISSAGE
+) -> StockAEcouler:
+    """Produits à écouler pertinents pour ce client, du plus au moins pertinent puis par urgence.
+
+    Les retours des établissements du même type (`acceptation`) modulent la pertinence
+    d'une demi-marche : un produit souvent accepté passe devant, un produit souvent refusé recule.
+    """
+    type_client = ref.client(client_id).type
     propositions: list[PropositionStock] = []
     for situation in situations_stock(ref):
         pertinence, raison = evaluer_pertinence(ref, client_id, situation.code)
         if pertinence is Pertinence.AUCUNE:
             continue
-        propositions.append(PropositionStock(**situation.model_dump(), pertinence=pertinence, raison_pertinence=raison))
-    propositions.sort(key=lambda p: (-p.pertinence, not p.urgent, p.jours_avant_dlc, p.code))
+        propositions.append(
+            PropositionStock(
+                **situation.model_dump(),
+                pertinence=pertinence,
+                raison_pertinence=raison,
+                retour_clients=acceptation.retour(situation.code, type_client),
+            )
+        )
+    poids = ref.regles.apprentissage_poids_pertinence
+
+    def rang(p: PropositionStock) -> tuple[float, bool, int, str]:
+        modulation = poids * p.retour_clients.sens if p.retour_clients else 0.0
+        return (-(p.pertinence + modulation), not p.urgent, p.jours_avant_dlc, p.code)
+
+    propositions.sort(key=rang)
     return StockAEcouler(
         client_id=client_id,
         date_du_jour=ref.date_du_jour,

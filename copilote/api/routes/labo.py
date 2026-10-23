@@ -59,7 +59,7 @@ def executer_outils(
 ) -> list[ResultatOutilLabo]:
     """Exécute chaque outil comme le ferait l'IA, et renvoie les résultats bruts."""
     ref = app.referentiels.obtenir()
-    boite = creer_boite_outils(ref, client_id, app.journal.lister(client_id=client_id))
+    boite = creer_boite_outils(ref, client_id, app.journal.lister(client_id=client_id), app.fiches.apprentissage())
     resultats = []
     for nom in boite.noms:
         arguments: dict[str, JsonValue] = {"client_id": client_id}

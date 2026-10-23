@@ -54,6 +54,23 @@ GET /admin/diagnostic                           (ou python -m copilote.diagnosti
 
 Le simulateur (`datahub/simulateur.py`) est l'implémentation de référence du contrat REST : son schéma OpenAPI est exporté dans `docs/contrat-datahub.json`, et les tests vérifient que `HttpDataSource` → réseau → simulateur restitue exactement les données du mock et produit les mêmes fiches.
 
+## Journée du télévendeur et apprentissage
+
+```
+GET /appels/journee                         objectifs, agenda des rappels, avancement de la tournée
+  └─ services/pilotage.py journee()         journal des 90 derniers jours + file d'appels
+     ├─ analyses.objectifs_du_jour()        comptes-rendus du jour (auteur), objectifs × taille de l'équipe
+     ├─ analyses.construire_agenda()        dernier appel de chaque client : rappel en retard / du jour / à venir
+     └─ analyses.avancement_tournee()       étapes par score ; « fait » = compte-rendu enregistré aujourd'hui
+
+ServiceFiches.produire()
+  └─ apprentissage()                        analyses.apprendre(journal 90 j) → taux par (produit, type de client)
+     ├─ construire_contexte(…, acceptation) stock et suggestions reclassés, avec retour_clients justifié
+     └─ creer_boite_outils(…, acceptation)  l'IA voit le même classement que la fiche
+```
+
+La tournée ne stocke aucun état : elle se déduit de la file d'appels et du journal. Le frontend enchaîne les fiches (`#/clients/C003?tournee=1`) et propose le client suivant après chaque compte-rendu.
+
 ## Banc d'évaluation
 
 ```
@@ -113,7 +130,7 @@ Pour ajouter un fournisseur, par exemple un modèle hébergé en interne, il suf
 
 | Besoin | Fichier |
 |---|---|
-| Changer un seuil ou une remise | `copilote/analyses/regles.py` |
+| Changer un seuil, une remise ou un objectif du jour | `copilote/analyses/regles.py` |
 | Modifier les consignes données à l'IA | `copilote/agent/prompts.py`, puis `python -m scripts.evaluer --redacteurs anthropic` pour mesurer l'effet |
 | Ajouter un critère d'évaluation | `copilote/evaluation/criteres.py` |
 | Ajouter un outil pour l'IA | `copilote/agent/outils.py` (+ une analyse dans `copilote/analyses/`) |

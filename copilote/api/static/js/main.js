@@ -11,6 +11,7 @@ import { afficherConnexion } from "./vues/connexion.js";
 import { vueDonnees } from "./vues/donnees.js";
 import { vueFiche } from "./vues/fiche.js";
 import { vueFileAppels } from "./vues/file-appels.js";
+import { vueFinTournee } from "./vues/journee.js";
 import { vueLabo } from "./vues/labo.js";
 import { vueQualiteIA } from "./vues/qualite-ia.js";
 import { vueStock } from "./vues/stock.js";
@@ -31,6 +32,7 @@ const routeur = new Routeur()
     .ajouter("/clients/:id/360", "clients", vueClient360)
     .ajouter("/stock", "stock", vueStock)
     .ajouter("/tableau-de-bord", "tableau", vueTableauDeBord)
+    .ajouter("/tournee/fin", "appels", vueFinTournee)
     .ajouter("/labo", "labo", vueLabo)
     .ajouter("/labo/qualite", "labo", vueQualiteIA)
     .ajouter("/donnees", "donnees", vueDonnees);

@@ -11,6 +11,7 @@ import type {
   DetailsProduit,
   Fiche,
   FileAppels,
+  Journee,
   ContexteSession,
   DemandeEvaluation,
   ModeLLM,
@@ -97,6 +98,9 @@ export const api = {
     requete<DetailsProduit>(`/clients/${id(clientId)}/produits/${id(code)}`),
 
   fileAppels: (televendeur?: string) => requete<FileAppels>(url("/appels/file", { televendeur })),
+  journee: (televendeur?: string) => requete<Journee>(url("/appels/journee", { televendeur })),
+  /** Lien de téléchargement (le cookie de session suffit à l'authentifier). */
+  exportCommandes: (televendeur?: string) => url("/comptes-rendus/commandes.csv", { televendeur }),
   enregistrerCompteRendu: (saisie: SaisieCompteRendu) =>
     requete<CompteRenduEnregistre>("/comptes-rendus", json("POST", saisie)),
   comptesRendus: (filtres: { client_id?: string; jours?: number } = {}) =>

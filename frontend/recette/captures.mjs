@@ -36,11 +36,12 @@ async function capture(p, nom, pleinePage = true) {
 
 async function captureElement(p, selecteur, nom) {
   // En-tête et navigation fixes masqués le temps de la capture (sinon ils recouvrent l'élément).
-  await p.addStyleTag({ content: ".entete, .navigation { position: static !important; }" });
+  const style = await p.addStyleTag({ content: ".entete, .navigation { position: static !important; }" });
   const element = p.locator(selecteur).first();
   await element.scrollIntoViewIfNeeded();
   await p.waitForTimeout(300);
   await element.screenshot({ path: join(dossier, `${nom}.png`) });
+  await style.evaluate((noeud) => noeud.remove()); // l'application garde ses éléments fixes pour la suite
   console.log(`capture : ${nom}.png`);
 }
 
@@ -148,6 +149,64 @@ const scenarios = {
     await mobile.waitForSelector(".score-redacteur", { timeout: 30000 });
     await mobile.locator(".score-redacteur").first().scrollIntoViewIfNeeded();
     await capture(mobile, "06-qualite-ia-mobile", false);
+  },
+
+  // La journée du télévendeur : tournée, comptes-rendus, bilan, export, apprentissage.
+  async "etape-4"() {
+    const mobile = await page(MOBILE);
+    await connecter(mobile, "julie.moreau");
+    await mobile.waitForSelector(".carte.journee");
+    await capture(mobile, "01-ma-journee-mobile", false);
+    await captureElement(mobile, "section.carte:has(.sous-titre)", "02-agenda-des-rappels");
+
+    await mobile.goto(base + "/#/");
+    await mobile.waitForSelector(".carte.journee");
+    await mobile.click("text=Démarrer la tournée");
+    await mobile.waitForSelector(".bandeau-tournee");
+    await mobile.waitForSelector(".accroches");
+    await capture(mobile, "03-tournee-fiche-mobile", false);
+
+    const accepter = mobile.locator(".ligne-cr .segment button.accepte");
+    await accepter.nth(0).click();
+    await accepter.nth(1).click();
+    await mobile.click("form.formulaire button[type=submit]");
+    await mobile.waitForSelector("text=Client suivant");
+    await captureElement(mobile, "section.carte:has(.message-succes)", "04-compte-rendu-puis-client-suivant");
+
+    await mobile.click("text=Client suivant");
+    await mobile.waitForSelector(".bandeau-tournee");
+    await mobile.waitForSelector("form.formulaire");
+    await mobile.locator(".ligne-cr .segment button.accepte").first().click();
+    await mobile.click("form.formulaire button[type=submit]");
+    await mobile.waitForSelector("text=Client suivant");
+
+    await mobile.goto(base + "/#/tournee/fin");
+    await mobile.waitForSelector(".objectif");
+    await capture(mobile, "05-bilan-de-tournee-mobile", false);
+    const [telechargement] = await Promise.all([mobile.waitForEvent("download"), mobile.click("text=Commandes du jour (CSV)")]);
+    await telechargement.saveAs(join(dossier, "commandes-du-jour.csv"));
+    console.log("export : commandes-du-jour.csv");
+  },
+
+  async "etape-4-equipe"() {
+    const bureau = await page(BUREAU);
+    await connecter(bureau, "responsable");
+    await bureau.waitForSelector(".carte.journee");
+    await capture(bureau, "06-journee-equipe-bureau", false);
+  },
+
+  // Apprentissage des retours : une offre souvent acceptée, une souvent refusée par des clients du même type.
+  async "etape-4-apprentissage"() {
+    const bureau = await page(BUREAU);
+    await connecter(bureau, "responsable");
+    for (const [client, texte, nom] of [
+      ["C016", "souvent accepté", "07-apprentissage-souvent-accepte"],
+      ["C020", "souvent refusé", "08-apprentissage-souvent-refuse"],
+    ]) {
+      await bureau.goto(base + `/#/clients/${client}`);
+      await bureau.waitForSelector(`text=${texte}`, { timeout: 30000 });
+      await captureElement(bureau, `section.carte:has-text("${texte}")`, nom);
+    }
   },
 };
 

@@ -70,6 +70,18 @@ class ReglesMetier:
     # --- Journal d'appels --------------------------------------------------------------
     jours_memoire_refus: int = 14  # un produit refusé n'est pas reproposé pendant 14 jours
 
+    # --- Apprentissage des retours clients (acceptations et refus au téléphone) ------------
+    apprentissage_fenetre_jours: int = 90
+    apprentissage_min_propositions: int = 3  # pas de conclusion sur moins de 3 propositions
+    apprentissage_lissage: int = 3  # taux lissé vers la moyenne (3 propositions « moyennes » fictives)
+    apprentissage_ecart: float = 0.15  # écart à la moyenne retenu comme significatif (15 points)
+    apprentissage_poids_pertinence: float = 0.5  # stock : une demi-marche de pertinence
+    apprentissage_poids_adoption_pts: int = 20  # suggestions : 20 points de taux d'adoption
+
+    # --- Objectifs du jour, par télévendeur ----------------------------------------------
+    objectif_appels_jour: int = 20
+    objectif_ca_jour_ht: float = 1500.0
+
     # --- Priorisation des appels -------------------------------------------------------
     priorite: PoidsPriorite = field(default_factory=PoidsPriorite)
 
